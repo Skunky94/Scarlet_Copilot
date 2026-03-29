@@ -684,7 +684,32 @@ function readAgentState() {
 function writeAgentState(state) {
     const p = getStatePath();
     if (!p) return;
+    // cog_012: Audit log state transitions
+    const prevState = readAgentState();
+    if (prevState.state !== state.state || prevState.effective_state !== state.effective_state) {
+        logStateAudit(prevState, state);
+    }
     writeJsonSafe(p, state);
+}
+
+// ─── cog_012: State Audit Logging ────────────────────────────────────────────
+// Appends a JSONL entry for every state transition for post-mortem debugging.
+function logStateAudit(prev, next) {
+    const root = getWorkspaceRoot();
+    if (!root) return;
+    const auditPath = path.join(root, '.scarlet', 'state_audit.jsonl');
+    const entry = {
+        ts: new Date().toISOString(),
+        from: prev.state,
+        to: next.state,
+        effective_from: prev.effective_state || null,
+        effective_to: next.effective_state || null,
+        reason: next.last_transition_reason || null,
+        confidence: next.state_confidence || null
+    };
+    try {
+        fs.appendFileSync(auditPath, JSON.stringify(entry) + '\n', 'utf-8');
+    } catch {}
 }
 
 // ─── Task Ledger Reader ──────────────────────────────────────────────────────
