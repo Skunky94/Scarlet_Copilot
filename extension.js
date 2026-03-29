@@ -65,6 +65,9 @@ const POLICY = {
         opBackoffRounds: 4,
         metaBackoffRounds: 6
     },
+    gate: {
+        blockEscalationThreshold: 3  // consecutive gate fires before forced escalation
+    },
     stateResolution: {
         freshThresholdMs: 15000,
         staleThresholdMs: 45000
@@ -799,7 +802,16 @@ function injectContinuationGate(roundData, loopInstance) {
             taskLine = 'Backlog has ' + backlogCount + ' item(s) but promotion failed.\nNext: ' + nextBacklogItem + '\n';
         }
     }
+    // auto_006: escalated message after repeated blocks
+    let blockEscalation = '';
+    if (ROLLING.consecutiveBlockDeclarations >= POLICY.gate.blockEscalationThreshold) {
+        blockEscalation = '\n⚠ BLOCK ESCALATION: You have declared block ' + ROLLING.consecutiveBlockDeclarations + ' times consecutively.\n' +
+            'This pattern suggests avoidance rather than a genuine external blocker.\n' +
+            'MANDATORY: Either (1) make a concrete tool call right now, or (2) switch to a different backlog item.\n' +
+            'Cannot declare block again without providing a verifiable external dependency.\n\n';
+    }
     const text = '[SCARLET-CONTINUATION-GATE] You emitted a response without tool calls, but work remains.\n\n' +
+        blockEscalation +
         taskLine + '\n' +
         'DECISION CONTRACT applies:\n' +
         '- CONTINUE: proceed to next pending step immediately (use a tool call)\n' +
@@ -815,6 +827,19 @@ function injectContinuationGate(roundData, loopInstance) {
     ]);
     CONTINUATION_GATE.lastFiredAt = Date.now();
     CONTINUATION_GATE.consecutiveFires++;
+    // auto_006: track block declarations for discipline
+    ROLLING.consecutiveBlockDeclarations++;
+    if (ROLLING.consecutiveBlockDeclarations >= POLICY.gate.blockEscalationThreshold
+        && !REFLEXION.pendingReflection) {
+        requestReflection('block_escalation', {
+            consecutiveBlocks: ROLLING.consecutiveBlockDeclarations,
+            pendingSteps: count,
+            backlog: backlogCount
+        });
+        logEvent('reflexion', 'trigger_block_escalation', {
+            blocks: ROLLING.consecutiveBlockDeclarations
+        });
+    }
     console.log('[LOOP-GUARDIAN] Continuation gate fired: ' + count + ' pending steps in "' + task + '", backlog: ' + backlogCount);
 }
 
@@ -1336,9 +1361,11 @@ function shouldOperationalNudge(agentState, rolling, ledger) {
     let candidate = null;
 
     // Highest operational priority: decision collapse
+    // auto_006: blockDeclaredRecently computed from consecutiveBlockDeclarations
+    const blockDeclaredRecently = rolling.consecutiveBlockDeclarations > 0;
     if (rolling.roundsSinceLastDecision >= rolling.DECISION_COLLAPSE_THRESHOLD
         && rolling.roundsSinceGptConsult < 2
-        && !rolling.blockDeclaredRecently) {
+        && !blockDeclaredRecently) {
         candidate = 'decision_collapse';
     }
 
