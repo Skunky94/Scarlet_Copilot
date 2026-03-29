@@ -1,6 +1,6 @@
 {
   "schema_version": "3.0.0",
-  "last_updated": "2026-03-29T20:02:56.910Z",
+  "last_updated": "2026-03-29T20:18:12.109Z",
   "near_impossible_goal": "Autonomous persistent entity with eventual embodiment",
   "notes": "Goal graph v3. Co-designed with GPT. Focus: robustezza runtime, qualita semantica, modularizzazione, crescita autonoma.",
   "layers": [
@@ -623,7 +623,7 @@
           "title": "Metrics Dashboard",
           "description": "Dashboard visuale per metriche cognitive e operative.",
           "priority": "P2",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             "exp_003"
           ],
@@ -631,7 +631,9 @@
             "WebView dashboard",
             "Grafici drift/state/autonomy",
             "Real-time update"
-          ]
+          ],
+          "notes": "v2.12: WebView dashboard, 8 cards, 3 charts, state timeline, auto-refresh 2s. 4 new tests.",
+          "artifact": "scarlet.guardian.metrics command"
         },
         {
           "id": "exp_010",
