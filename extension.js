@@ -574,7 +574,7 @@ function promoteNextBacklogItem() {
         ledger.backlog_internal = (ledger.backlog_internal || []).filter(t => t.id !== next.id);
     }
 
-    if (ledger.stats) ledger.stats.total_completed = (ledger.stats.total_completed || 0) + 1;
+    // Note: stats.total_completed is managed by Scarlet, not the gate — avoid double-counting
     writeTaskLedger(ledger);
     console.log('[LOOP-GUARDIAN] Gate promoted backlog item: ' + next.title);
     return next;
