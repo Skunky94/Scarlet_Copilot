@@ -497,7 +497,7 @@ function computeQualityDrift() {
 
     const shouldRepair = DRIFT.consecutiveBadWindows >= DRIFT.BAD_WINDOWS_TRIGGER;
 
-    // Log drift check to metrics
+    // Log drift check to both legacy metrics.jsonl and structured events (exp_003)
     const root = getWorkspaceRoot();
     if (root) {
         try {
@@ -515,6 +515,7 @@ function computeQualityDrift() {
             fs.appendFileSync(metricsPath, JSON.stringify(entry) + '\n', 'utf-8');
         } catch {}
     }
+    logEvent('drift', 'quality_check', { score, metrics, shouldRepair, inRepair: DRIFT.inRepair });
 
     // Reset window
     DRIFT.roundsInWindow = 0;
@@ -548,6 +549,7 @@ function enterRepairState() {
     st.last_transition_reason = 'quality_drift_detected';
     writeAgentState(st);
     console.log('[LOOP-GUARDIAN] QUALITY DRIFT: entering repair state');
+    logEvent('drift', 'repair_enter', { score: DRIFT.consecutiveBadWindows });
 }
 
 function exitRepairState(reason) {
@@ -574,6 +576,7 @@ function exitRepairState(reason) {
         writeAgentState(st);
     }
     console.log('[LOOP-GUARDIAN] Exiting repair state (' + (reason || 'metrics_recovered') + ')');
+    logEvent('drift', 'repair_exit', { reason: reason || 'metrics_recovered', roundsInRepair });
 }
 
 // ─── Compulsive Loop Detector ────────────────────────────────────────────────
@@ -690,6 +693,7 @@ function promoteNextBacklogItem() {
     // Note: stats.total_completed is managed by Scarlet, not the gate — avoid double-counting
     writeTaskLedger(ledger);
     console.log('[LOOP-GUARDIAN] Gate promoted backlog item: ' + next.title);
+    logEvent('gate', 'backlog_promoted', { itemId: next.id, title: next.title, source: source });
     return next;
 }
 
@@ -823,6 +827,7 @@ function logStateAudit(prev, next) {
     try {
         fs.appendFileSync(auditPath, JSON.stringify(entry) + '\n', 'utf-8');
     } catch {}
+    logEvent('state', 'transition', entry);
 }
 
 // ─── Task Ledger Reader ──────────────────────────────────────────────────────
@@ -1338,13 +1343,58 @@ function shouldMetaNudge(agentState, ledger, operationalNudge, rolling) {
     return candidate;
 }
 
+// ─── Structured Event Logger (v2.12: exp_003) ───────────────────────────────
+// Centralized JSONL logging with subsystem categorization and retention policy.
+// Subsystems: round, drift, state, verification, nudge, gate, reflexion, gpt, error
+// All events go to .scarlet/events.jsonl for unified offline analytics.
+
+const LOG_CONFIG = {
+    MAX_FILE_SIZE: 512 * 1024,    // 512KB — rotate when exceeded
+    RETENTION_LINES: 2000,         // keep last 2000 lines after rotation
+    logPath: null                  // cached path
+};
+
+function logEvent(subsystem, event, data) {
+    const root = getWorkspaceRoot();
+    if (!root) return;
+    if (!LOG_CONFIG.logPath) {
+        const dir = path.join(root, '.scarlet');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        LOG_CONFIG.logPath = path.join(dir, 'events.jsonl');
+    }
+    const entry = {
+        ts: new Date().toISOString(),
+        sub: subsystem,
+        evt: event,
+        ...data
+    };
+    try {
+        fs.appendFileSync(LOG_CONFIG.logPath, JSON.stringify(entry) + '\n', 'utf-8');
+        // Retention check (every ~100 events to avoid stat overhead)
+        if (Math.random() < 0.01) rotateLogIfNeeded();
+    } catch {}
+}
+
+function rotateLogIfNeeded() {
+    try {
+        if (!LOG_CONFIG.logPath || !fs.existsSync(LOG_CONFIG.logPath)) return;
+        const stat = fs.statSync(LOG_CONFIG.logPath);
+        if (stat.size <= LOG_CONFIG.MAX_FILE_SIZE) return;
+
+        const content = fs.readFileSync(LOG_CONFIG.logPath, 'utf-8');
+        const lines = content.split('\n').filter(Boolean);
+        const kept = lines.slice(-LOG_CONFIG.RETENTION_LINES);
+        fs.writeFileSync(LOG_CONFIG.logPath, kept.join('\n') + '\n', 'utf-8');
+        console.log('[LOOP-GUARDIAN] Log rotated: ' + lines.length + ' -> ' + kept.length + ' lines');
+    } catch {}
+}
+
 // ─── Metrics Logger (persistent) ─────────────────────────────────────────────
 
 function logRoundMetrics(roundData, eventType) {
     const root = getWorkspaceRoot();
     if (!root) {
         METRICS.metricsSkipped++;
-        console.log('[LOOP-GUARDIAN] Metrics skipped: no workspace root (count: ' + METRICS.metricsSkipped + ')');
         return;
     }
     const metricsPath = path.join(root, '.scarlet', 'metrics.jsonl');
@@ -1359,12 +1409,15 @@ function logRoundMetrics(roundData, eventType) {
             toolCalls: toolCallNames.length,
             toolCallNames: toolCallNames,
             state: METRICS.state,
+            verificationLevel: VERIFICATION.level,  // cog_010
             uptimeMs: METRICS.activatedAt ? Date.now() - METRICS.activatedAt : 0,
             totalToolCalls: METRICS.toolCalls,
             totalMessages: METRICS.messagesDelivered,
             totalIdleLifeTriggers: METRICS.idleLifeTriggers
         };
         fs.appendFileSync(metricsPath, JSON.stringify(entry) + '\n', 'utf-8');
+        // Also log to structured events (exp_003)
+        logEvent('round', eventType, { tools: toolCallNames, state: METRICS.state, vLevel: VERIFICATION.level });
     } catch (e) {
         console.log('[LOOP-GUARDIAN] Metrics write error: ' + e.message);
         // Diagnostic: write error to separate file for debug when console inaccessible
@@ -1564,6 +1617,7 @@ function injectIdleLife(roundData, loopInstance) {
         new vscode.LanguageModelTextPart(text)
     ]);
     console.log('[LOOP-GUARDIAN] Idle life triggered (#' + METRICS.idleLifeTriggers + ')');
+    logEvent('round', 'idle_life', { count: METRICS.idleLifeTriggers });
 }
 
 // ─── Hook: onLoopCheck ───────────────────────────────────────────────────────
@@ -1588,6 +1642,7 @@ function injectNudge(roundData, loopInstance, purpose, agentState) {
     ]);
     METRICS.nudgesInjected++;
     console.log('[LOOP-GUARDIAN] Nudge injected: ' + purpose);
+    logEvent('nudge', 'injected', { purpose, state: agentState ? agentState.state : null });
 }
 
 async function onLoopCheck(roundData, loopInstance) {
@@ -1652,6 +1707,7 @@ async function onLoopCheck(roundData, loopInstance) {
             ROLLING.lastGptConsultAt = Date.now();
             ROLLING.roundsSinceGptConsult = 0;
             console.log('[LOOP-GUARDIAN] GPT consultation detected');
+            logEvent('gpt', 'consultation_detected', {});
         }
 
         // ── Structural change detection (trigger #4) ──
