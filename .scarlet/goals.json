@@ -1,6 +1,6 @@
 {
   "schema_version": "3.0.0",
-  "last_updated": "2026-03-29T20:25:40.413Z",
+  "last_updated": "2026-03-29T22:26:36.386Z",
   "near_impossible_goal": "Autonomous persistent entity with eventual embodiment",
   "notes": "Goal graph v3. Co-designed with GPT. Focus: robustezza runtime, qualita semantica, modularizzazione, crescita autonoma.",
   "layers": [
@@ -592,7 +592,7 @@
           "title": "WebSocket or REST Control API",
           "description": "API esterna per controllo e monitoring.",
           "priority": "P2",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             "exp_001",
             "exp_003"
@@ -601,7 +601,11 @@
             "Endpoint per stato corrente",
             "Endpoint per metriche",
             "Autenticazione locale"
-          ]
+          ],
+          "completed_at": "2026-03-29T22:26:36.385Z",
+          "outcome": "REST API on 127.0.0.1:17532, 6 endpoints, Bearer auth, 11 tests.",
+          "artifact": "lib/api.js + scarlet.guardian.apiInfo command",
+          "notes": "v2.12: Factory module, auto-port, token persistence. 12 modules total."
         },
         {
           "id": "exp_008",
@@ -870,14 +874,15 @@
           "title": "External Control Interface",
           "description": "Interfaccia di controllo esterna (CLI, REST, WebSocket).",
           "priority": "P2",
-          "status": "blocked",
+          "status": "pending",
           "dependencies": [
             "exp_007"
           ],
           "completion_criteria": [
             "Interfaccia funzionante",
             "Comandi base: start/stop/status/goals"
-          ]
+          ],
+          "notes": " Dependencies now satisfied."
         },
         {
           "id": "emb_002",
@@ -901,7 +906,7 @@
           "title": "Runtime Health Interface",
           "description": "Interfaccia per monitoraggio salute runtime.",
           "priority": "P2",
-          "status": "blocked",
+          "status": "pending",
           "dependencies": [
             "exp_003",
             "exp_007"
@@ -910,7 +915,8 @@
             "Health check endpoint",
             "Metriche esposte",
             "Alert su anomalie"
-          ]
+          ],
+          "notes": " Dependencies now satisfied."
         },
         {
           "id": "emb_legacy",
