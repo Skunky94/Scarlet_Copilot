@@ -1,10 +1,10 @@
 {
   "current_task": {
-    "id": "int_037",
-    "title": "exp_002: Centralized Policy Config",
+    "id": "int_038",
+    "title": "auto_006: Block Declaration Discipline",
     "source": "goals-v3",
     "priority": "P1",
-    "started_at": "2026-03-29T18:10:13.075Z",
+    "started_at": "2026-03-29T18:22:10.196Z",
     "status": "done"
   },
   "completed_tasks": [
@@ -79,6 +79,12 @@
       "title": "cog_011: Activate Reflexion",
       "completed_at": "2026-03-29T18:10:13.075Z",
       "outcome": "cog_011 done"
+    },
+    {
+      "id": "int_037",
+      "title": "exp_002: Centralized Policy Config",
+      "completed_at": "2026-03-29T18:22:10.196Z",
+      "outcome": "exp_002 done"
     }
   ],
   "backlog_external": [
@@ -108,7 +114,7 @@
     }
   ],
   "stats": {
-    "total_completed": 35,
+    "total_completed": 36,
     "total_abandoned": 0
   }
 }
