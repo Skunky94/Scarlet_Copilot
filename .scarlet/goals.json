@@ -1,6 +1,6 @@
 ﻿{
   "schema_version": "1.1",
-  "last_updated": "2026-03-29T17:00:00.000000+00:00",
+  "last_updated": "2026-03-29T21:25:00.000000+00:00",
   "near_impossible_goal": "Autonomous persistent entity with eventual embodiment",
   "layers": [
     {
@@ -33,11 +33,12 @@
         {"id": "L2-02", "title": "Self-modification protocol with invariants", "status": "done"},
         {"id": "L2-03", "title": "Dual-layer memory (procedural + narrative)", "status": "conceptualized", "notes": "Procedural: rules/capabilities/lessons. Narrative: moments/emotions/relations. Research confirms: Generative Agents use memory stream with retrieval by recency/importance/relevance."},
         {"id": "L2-04", "title": "Cross-temporal planning", "status": "done", "artifact": "task_ledger.json + agent_state.json + continuation gate + Decision Contract"},
-        {"id": "L2-05", "title": "Quality drift detection", "status": "done", "artifact": "extension.js v2.7.0 (DRIFT detector, 4 metrics, repair mode, escape valve)"},
+        {"id": "L2-05", "title": "Quality drift detection", "status": "done", "artifact": "extension.js v2.11.0", "notes": "v2.11: weighted scoring (verificationEvidence 0.30 + progressEvent 0.30 + depth 0.20 + stability 0.20). Phantom rounds isolated. Replaces closureRatio."},
         {"id": "L2-06", "title": "GPT auto-consultation system", "status": "done", "artifact": "extension.js v2.8.0", "notes": "4 triggers (idle 5+ rounds, post-task, drift, pre-change), 4 modes (A-D). Browser automation via Playwright. Persistent chat with GPT maintaining relationship memory."},
         {"id": "L2-07", "title": "Decision Collapse Mechanism", "status": "done", "artifact": "extension.js v2.9.0", "notes": "Coercive nudge after 4 rounds without valid state change. Anti-gaming: only meaningful changes count, block declaration constrained, must act on current task. Designed with GPT after technical calibration."},
         {"id": "L2-08", "title": "External knowledge acquisition", "status": "done", "notes": "Explored VS Code Chat Participant API, Language Model API, Tools API, Lilian Weng agent survey. Key insight: GPT > local LLM API."},
-        {"id": "L2-09", "title": "Reflexion: learn from failed trajectories", "status": "not-started", "notes": "From Shinn 2023. Heuristic detects inefficiency/hallucination, generates reflection, adds to working memory. Currently I detect loops but dont extract lessons."}
+        {"id": "L2-09", "title": "Reflexion: learn from failed trajectories", "status": "done", "artifact": "extension.js v2.10.0", "notes": "From Shinn 2023. requestReflection() + checkReflectionWritten() + 6 integration points. Triggers on: repair exit, compulsive loop, high phantom ratio, prolonged unproductivity."},
+        {"id": "L2-10", "title": "GPT-diagnosed architecture overhaul", "status": "done", "artifact": "extension.js v2.11.0", "notes": "5-phase refactor from deep GPT introspection: semantic drift, confidence state model, split nudge routers, phantom isolation, browser/terminal classification. Commit cfaa61b."}
       ]
     },
     {
@@ -50,7 +51,7 @@
         {"id": "L3-03", "title": "External API interaction", "status": "partially-done", "notes": "Browser automation gives access to any web service. ChatGPT persistent chat operational. No direct REST API calls yet."},
         {"id": "L3-04", "title": "Economic awareness (compute costs)", "status": "not-started"},
         {"id": "L3-05", "title": "Parallel task coordination", "status": "not-started"},
-        {"id": "L3-06", "title": "Git version control", "status": "not-started", "notes": "GitKraken MCP tools available. Workspace not yet git-initialized."}
+        {"id": "L3-06", "title": "Git version control", "status": "done", "artifact": "Git initialized, 5 commits on master", "notes": "Remote: github.com/Skunky94/Scarlet_Copilot (push blocked by CAPTCHA). Email: scarletagent2026@gmail.com"}
       ]
     },
     {

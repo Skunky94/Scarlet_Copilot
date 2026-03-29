@@ -2,8 +2,9 @@
   "current_task": {
     "id": "ext_002",
     "title": "Deep GPT introspection cycle — architecture + behavior analysis",
-    "status": "in-progress",
+    "status": "done",
     "started_at": "2026-03-29T18:55:00Z",
+    "completed_at": "2026-03-29T21:25:00Z",
     "priority": "critical",
     "source": "davide",
     "steps": [
@@ -13,7 +14,7 @@
       {"id": "s4", "name": "Extract and process GPT's full analysis", "status": "done", "verification_evidence": "GPT delivered 9-point diagnosis + 6-priority fix list. Saved to /memories/session/gpt-introspection-findings.md"},
       {"id": "s5", "name": "Ask GPT for concrete v2.11 implementation plan", "status": "done", "verification_evidence": "GPT provided 5-modification plan with phases, risks, verification criteria. Saved to session memory."},
       {"id": "s6", "name": "Get GPT function-by-function pseudo-code spec", "status": "done", "verification_evidence": "Full pseudo-code for all 8 functions + integration block. Extracted and processed."},
-      {"id": "s7", "name": "Implement v2.11 in extension.js", "status": "in-progress"}
+      {"id": "s7", "name": "Implement v2.11 in extension.js", "status": "done", "verification_evidence": "All 5 phases implemented, syntax check passed, deployed 12/12, committed cfaa61b. +627/-248 lines."}
     ]
   },
   "completed_tasks": [
@@ -29,8 +30,8 @@
     {"id": "ext_001", "title": "Complete GitHub signup (CAPTCHA)", "priority": "medium", "blocked_by": "Davide must complete CAPTCHA or register manually"}
   ],
   "backlog_internal": [
-    {"id": "int_017", "title": "Observe v2.10.0 Reflexion + Decision Collapse in action", "priority": "high", "blocked_by": "VS Code reload"},
-    {"id": "int_022", "title": "Update goals.json with git + reflexion progress", "priority": "low"}
+    {"id": "int_017", "title": "Observe v2.11.0 in action after reload", "priority": "high", "blocked_by": "VS Code reload"},
+    {"id": "int_022", "title": "Update goals.json with v2.11 + reflexion + git progress", "priority": "low", "status": "done"}
   ],
-  "stats": {"total_completed": 18, "total_abandoned": 0}
+  "stats": {"total_completed": 19, "total_abandoned": 0}
 }
