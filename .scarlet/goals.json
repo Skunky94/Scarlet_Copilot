@@ -1,6 +1,6 @@
 {
   "schema_version": "3.0.0",
-  "last_updated": "2026-03-29T18:55:39.547Z",
+  "last_updated": "2026-03-29T18:59:43.034Z",
   "near_impossible_goal": "Autonomous persistent entity with eventual embodiment",
   "notes": "Goal graph v3. Co-designed with GPT. Focus: robustezza runtime, qualita semantica, modularizzazione, crescita autonoma.",
   "layers": [
@@ -15,14 +15,15 @@
           "title": "Preserve Core Runtime Assumptions",
           "description": "Mantenere compatibilita con il loop agentico Copilot Chat, persistenza file-backed e patching runtime.",
           "priority": "P0",
-          "status": "active",
+          "status": "done",
           "dependencies": [],
           "completion_criteria": [
             "Assunzioni di base documentate",
             "Ogni refactor verifica compatibilita col runtime",
             "Dipendenze strutturali esplicite"
           ],
-          "notes": "Vincolo permanente, non un goal di cambiamento."
+          "notes": "v2.12: 6 invariants documented, startup validation, refactor checklist.",
+          "artifact": "RUNTIME_ASSUMPTIONS.md + validateRuntimeAssumptions()"
         }
       ]
     },
