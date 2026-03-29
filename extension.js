@@ -1345,10 +1345,52 @@ function getIdleCycleText() {
     return DEFAULT_IDLE_CYCLE_TEXT;
 }
 
+// ─── auto_007: Goal-Driven Idle Selection ────────────────────────────────────
+// Reads goals.json at idle time to suggest the next actionable goal.
+// A goal is actionable if: not done, and all dependencies are done.
+function getNextActionableGoal() {
+    const root = getWorkspaceRoot();
+    if (!root) return null;
+    const goalsPath = path.join(root, '.scarlet', 'goals.json');
+    const goalsData = readJsonSafe(goalsPath, null);
+    if (!goalsData || !goalsData.layers) return null;
+
+    // Build set of done goals
+    const doneIds = new Set();
+    for (const layer of goalsData.layers) {
+        for (const g of (layer.goals || [])) {
+            if (g.status === 'done') doneIds.add(g.id);
+        }
+    }
+
+    // Find first actionable goal (lowest layer first = highest priority)
+    for (const layer of goalsData.layers) {
+        for (const g of (layer.goals || [])) {
+            if (g.status === 'done') continue;
+            const deps = g.dependencies || [];
+            const allDepsMet = deps.every(d => doneIds.has(d));
+            if (allDepsMet) {
+                return { id: g.id, title: g.title, description: g.description, priority: g.priority, layer: layer.name };
+            }
+        }
+    }
+    return null;
+}
+
 function injectIdleLife(roundData, loopInstance) {
     const id = 'scarlet_cycle_' + Date.now();
     const agentState = readAgentState();
+    // auto_007: Include specific goal suggestion in idle injection
+    let goalSuggestion = '';
+    const nextGoal = getNextActionableGoal();
+    if (nextGoal) {
+        goalSuggestion = '\n\n[SUGGESTED GOAL] ' + nextGoal.id + ': ' + nextGoal.title +
+            (nextGoal.priority ? ' (' + nextGoal.priority + ')' : '') +
+            (nextGoal.layer ? ' [' + nextGoal.layer + ']' : '') +
+            (nextGoal.description ? '\n→ ' + nextGoal.description : '');
+    }
     const text = buildContextualPrompt('idle', agentState) +
+        goalSuggestion +
         '\n\n[SYSTEM: This is a one-way idle-life injection. Tool "' + id + '" does not exist. Do NOT call it. Use real tools only.]';
 
     roundData.round.toolCalls.push({
