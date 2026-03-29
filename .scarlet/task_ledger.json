@@ -1,17 +1,23 @@
 ﻿{
   "current_task": {
-    "id": "int_021",
-    "title": "Design Reflexion mechanism for Loop Guardian",
+    "id": "ext_002",
+    "title": "Deep GPT introspection cycle — architecture + behavior analysis",
     "status": "in-progress",
-    "started_at": "2026-03-29T18:35:00Z",
+    "started_at": "2026-03-29T18:55:00Z",
+    "priority": "critical",
+    "source": "davide",
     "steps": [
-      {"id": "s1", "name": "Analyze current failure detection in extension.js", "status": "done", "verification_evidence": "Read DRIFT detector (lines 92-260), compulsive loop (270-290), shouldNudge (679-725), buildContextualPrompt (442-665), state inference (660+). Identified 3 failure detectors, all trigger corrective behavior but extract no lessons."},
-      {"id": "s2", "name": "Design reflection extraction + storage format", "status": "done", "verification_evidence": "Designed and implemented inline: REFLEXION object, loadRecentReflections, formatReflectionsForPrompt, requestReflection, checkReflectionWritten"},
-      {"id": "s3", "name": "Implement in extension.js as v2.10.0 feature", "status": "done", "verification_evidence": "node -c passed. VERSION=v2.10.0. 6 integration points: REFLEXION state, exitRepairState hook, compulsive loop hook, shouldNudge reflect priority, buildContextualPrompt reflect case, onLoopCheck reflection detection+expiry"},
-      {"id": "s4", "name": "Deploy and verify", "status": "not-started"}
+      {"id": "s1", "name": "Gather all technical data (code, metrics, goals, logs)", "status": "done"},
+      {"id": "s2", "name": "Open GPT chat and send architecture overview", "status": "done", "verification_evidence": "GPT responded with 8 targeted questions"},
+      {"id": "s3", "name": "Send detailed answers to GPT's 8 diagnostic questions", "status": "done", "verification_evidence": "Sent shouldNudge logic, tool classification, 3 failure sequences, Prompt DNA, Triple State Model"},
+      {"id": "s4", "name": "Extract and process GPT's full analysis", "status": "done", "verification_evidence": "GPT delivered 9-point diagnosis + 6-priority fix list. Saved to /memories/session/gpt-introspection-findings.md"},
+      {"id": "s5", "name": "Ask GPT for concrete v2.11 implementation plan", "status": "done", "verification_evidence": "GPT provided 5-modification plan with phases, risks, verification criteria. Saved to session memory."},
+      {"id": "s6", "name": "Get GPT function-by-function pseudo-code spec", "status": "done", "verification_evidence": "Full pseudo-code for all 8 functions + integration block. Extracted and processed."},
+      {"id": "s7", "name": "Implement v2.11 in extension.js", "status": "in-progress"}
     ]
   },
   "completed_tasks": [
+    {"id": "int_021", "title": "Reflexion mechanism v2.10.0", "completed_at": "2026-03-29T18:50:00Z", "outcome": "Designed and implemented. 6 integration points. Committed f475126. Deployed but needs reload."},
     {"id": "int_020", "title": "Configure git with real email", "completed_at": "2026-03-29T17:10:00Z", "outcome": "scarletagent2026@gmail.com"},
     {"id": "int_019", "title": "Setup Gmail + GitHub for external identity", "completed_at": "2026-03-29T18:30:00Z", "outcome": "Gmail done. GitHub blocked by CAPTCHA - needs Davide."},
     {"id": "int_018", "title": "Git init workspace", "completed_at": "2026-03-29T17:05:00Z", "outcome": "83 files, 3 commits."},
@@ -23,8 +29,8 @@
     {"id": "ext_001", "title": "Complete GitHub signup (CAPTCHA)", "priority": "medium", "blocked_by": "Davide must complete CAPTCHA or register manually"}
   ],
   "backlog_internal": [
-    {"id": "int_017", "title": "Observe v2.9.0 Decision Collapse in action", "priority": "high", "blocked_by": "VS Code reload"},
-    {"id": "int_022", "title": "Update goals.json with git progress", "priority": "low"}
+    {"id": "int_017", "title": "Observe v2.10.0 Reflexion + Decision Collapse in action", "priority": "high", "blocked_by": "VS Code reload"},
+    {"id": "int_022", "title": "Update goals.json with git + reflexion progress", "priority": "low"}
   ],
-  "stats": {"total_completed": 17, "total_abandoned": 0}
+  "stats": {"total_completed": 18, "total_abandoned": 0}
 }

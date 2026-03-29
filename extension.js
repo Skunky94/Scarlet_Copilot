@@ -1,4 +1,4 @@
-// Scarlet Loop Guardian v2.10.0
+// Scarlet Loop Guardian v2.11.0
 // Exports 3 hooks consumed by micro-patches in Copilot Chat's extension.js:
 //   shouldBypassToolLimit, shouldBypassYield, onLoopCheck
 //
@@ -13,7 +13,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = 'v2.10.0'; // single source of truth for runtime version
+const VERSION = 'v2.11.0'; // single source of truth for runtime version
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
@@ -154,97 +154,232 @@ function checkReflectionWritten() {
     return false;
 }
 
-// ─── Quality Drift Detector (v2.4.0) ────────────────────────────────────────
+// ─── Quality Drift Detector (v2.11.0) ────────────────────────────────────────
 // Measures behavioral quality over rolling windows. Forces "repair" state when
-// drift is detected. Spec: 4 metrics, window of 10 rounds, 2-window trigger.
+// drift is detected. v2.11: replaces closureRatio with progressEventScore,
+// separates phantom rounds, adds stability metric.
 
 const DRIFT = {
     WINDOW_SIZE: 10,
     roundsInWindow: 0,
-    // Per-window accumulators
-    verifyActions: 0,       // rounds that had verification-type tool calls
-    totalActions: 0,        // rounds with any real tool calls
-    ledgerStepChanges: 0,   // times the ledger current step changed
-    depthReads: 0,          // tool calls that read output (read_file, get_errors, grep_search)
-    totalToolCalls: 0,      // all real tool calls in window
-    stateTransitions: 0,    // Bug L fix: independent metric replacing correlated decisionDensity
-    // Bug K fix: track write-then-verify pairs (not just verify presence)
-    lastRoundHadWrite: false,
-    verifiedAfterWrite: 0,  // rounds with verify-type calls that follow a write round
-    writeRounds: 0,         // rounds that had write-type calls
-    // Thresholds (v2.5: lowered from unrealistic values that caused permanent repair)
-    VERIFICATION_RATIO_MIN: 0.2,
-    CLOSURE_RATIO_MIN: 0.15,
-    DEPTH_SCORE_MIN: 0.15,
-    TRANSITION_DENSITY_MIN: 0.1,  // Bug L fix: replaces DECISION_DENSITY_MIN
-    // State
+    validRoundsInWindow: 0,          // exclude phantom-only rounds
+    // Verification evidence
+    verificationEvidenceRounds: 0,   // rounds with real verification after modify/ambiguous work
+    // Depth
+    depthEvidenceCount: 0,           // depth-like tool calls in window
+    totalRealToolCalls: 0,           // denominator for depth
+    // Progress events (replaces closureRatio)
+    progressEvents: 0,              // discrete meaningful ledger changes in window
+    lastProgressSnapshot: null,     // compare current vs previous task snapshot
+    // Stability (replaces transitionDensity)
+    stableStateRounds: 0,           // consecutive rounds with same effective_state
+    stateOscillationCount: 0,       // count of effective_state flips in window
+    lastEffectiveState: null,
+    // Output
     consecutiveBadWindows: 0,
     BAD_WINDOWS_TRIGGER: 2,
+    SCORE_REPAIR_ENTER: 0.35,
+    SCORE_REPAIR_EXIT: 0.40,
     lastDriftCheck: null,
     inRepair: false,
-    repairRoundsElapsed: 0,          // v2.5: track rounds in repair for escape valve
-    REPAIR_MAX_ROUNDS: 30,           // v2.5: auto-exit repair after this many rounds
-    repairNudgeCooldown: 0,          // v2.5: cooldown counter for repair nudge
-    REPAIR_NUDGE_INTERVAL: 5,        // v2.5: only fire repair nudge every N rounds
-    lastLedgerStep: null,
-    lastDriftState: null              // Bug L: track state transitions per window
+    repairRoundsElapsed: 0,
+    REPAIR_MAX_ROUNDS: 30,
+    repairNudgeCooldown: 0,
+    REPAIR_NUDGE_INTERVAL: 5
 };
 
-function pushDriftRound(toolCallNames, hadVerification, ledgerStepId, currentState) {
+// ─── Phantom Tracker (v2.11.0) ───────────────────────────────────────────────
+// Separate failure class — phantom rounds no longer contaminate drift metrics.
+
+const PHANTOM = {
+    phantomOnlyRoundsWindow: 0,
+    phantomDominantRoundsWindow: 0,  // >50% phantom calls in round
+    consecutivePhantomOnlyRounds: 0,
+    lastPhantomRoundAt: 0,
+    recentPhantomBurst: false
+};
+
+// ─── State Confidence Model (v2.11.0) ────────────────────────────────────────
+// Replaces time-based grace period with confidence scoring.
+
+const STATE_MODEL = {
+    declared: 'idle_active',
+    inferred: 'idle_active',
+    effective: 'idle_active',
+    confidence: 0.0,
+    inferredConsistency: 0,        // consecutive rounds same inferred state
+    declaredFreshRounds: 0,        // how long declared state remains fresh
+    lastEffectiveChangeAt: 0
+};
+
+// ─── Task Tracker (v2.11.0) ─────────────────────────────────────────────────
+// Snapshot for progress event detection.
+
+const TASK_TRACKER = {
+    lastSnapshot: null
+};
+
+// ─── v2.11 Helper Functions ──────────────────────────────────────────────────
+
+function getLedgerPath() {
+    const root = getWorkspaceRoot();
+    return root ? path.join(root, '.scarlet', 'task_ledger.json') : null;
+}
+
+function getCurrentTaskSnapshot(ledger) {
+    if (!ledger || !ledger.current_task) {
+        return {
+            taskId: null,
+            taskStatus: null,
+            activeStepId: null,
+            doneStepCount: 0,
+            verifiedStepCount: 0,
+            backlogExternalCount: (ledger ? (ledger.backlog_external || []) : []).length,
+            backlogInternalCount: (ledger ? (ledger.backlog_internal || []) : []).length
+        };
+    }
+    const task = ledger.current_task;
+    const steps = task.steps || [];
+    const activeStep =
+        steps.find(s => s.status === 'executing') ||
+        steps.find(s => s.status === 'in-progress') ||
+        steps.find(s => s.status === 'pending') ||
+        null;
+    const doneStepCount = steps.filter(s => s.status === 'done' || s.status === 'completed').length;
+    const verifiedStepCount = steps.filter(s => s.verified === true).length;
+    return {
+        taskId: task.id || null,
+        taskStatus: task.status || null,
+        activeStepId: activeStep ? (activeStep.id || activeStep.name || null) : null,
+        doneStepCount,
+        verifiedStepCount,
+        backlogExternalCount: (ledger.backlog_external || []).length,
+        backlogInternalCount: (ledger.backlog_internal || []).length
+    };
+}
+
+function detectProgressEvent(prevSnap, nextSnap) {
+    if (!nextSnap || !prevSnap) return false;
+    if (prevSnap.taskId !== nextSnap.taskId) return true;
+    if (prevSnap.taskStatus !== nextSnap.taskStatus) return true;
+    if (prevSnap.activeStepId !== nextSnap.activeStepId) return true;
+    if (nextSnap.doneStepCount > prevSnap.doneStepCount) return true;
+    if (nextSnap.verifiedStepCount > prevSnap.verifiedStepCount) return true;
+    if (nextSnap.taskId && prevSnap.taskId !== nextSnap.taskId &&
+        (nextSnap.backlogExternalCount < prevSnap.backlogExternalCount ||
+         nextSnap.backlogInternalCount < prevSnap.backlogInternalCount)) {
+        return true;
+    }
+    return false;
+}
+
+function isPhantomOnlyRound(callNames) {
+    return callNames.length > 0 && callNames.every(n => isPhantomToolCall(n));
+}
+
+function isPhantomDominantRound(callNames) {
+    if (!callNames.length) return false;
+    const phantom = callNames.filter(n => isPhantomToolCall(n)).length;
+    return phantom / callNames.length > 0.5;
+}
+
+function pushDriftRound({ toolCallNames, realToolCallNames, effectiveState, hadVerificationEvidence, ledgerSnapshot }) {
     DRIFT.roundsInWindow++;
-    DRIFT.totalActions++;
-    DRIFT.totalToolCalls += toolCallNames.length;
 
-    const writeTools = ['replace_string_in_file', 'multi_replace_string_in_file', 'create_file'];
-    const hadWrite = toolCallNames.some(n => writeTools.includes(n));
+    const phantomOnly = isPhantomOnlyRound(toolCallNames);
+    const phantomDominant = isPhantomDominantRound(toolCallNames);
 
-    // Bug K fix: track meaningful verification (verify after write, not just any read)
-    if (hadWrite) {
-        DRIFT.writeRounds++;
-        DRIFT.lastRoundHadWrite = true;
+    if (phantomOnly) {
+        PHANTOM.phantomOnlyRoundsWindow++;
+        PHANTOM.consecutivePhantomOnlyRounds++;
+        PHANTOM.lastPhantomRoundAt = Date.now();
+        return; // DO NOT contaminate drift metrics
     }
-    if (hadVerification && DRIFT.lastRoundHadWrite) {
-        DRIFT.verifiedAfterWrite++;
-        DRIFT.lastRoundHadWrite = false; // consumed the write-verify pair
+    if (phantomDominant) {
+        PHANTOM.phantomDominantRoundsWindow++;
     }
-    if (hadVerification) DRIFT.verifyActions++;
+    PHANTOM.consecutivePhantomOnlyRounds = 0;
 
-    const depthTools = ['read_file', 'get_errors', 'grep_search', 'semantic_search'];
-    DRIFT.depthReads += toolCallNames.filter(n => depthTools.includes(n)).length;
+    DRIFT.validRoundsInWindow++;
 
-    if (ledgerStepId !== null && ledgerStepId !== DRIFT.lastLedgerStep) {
-        DRIFT.ledgerStepChanges++;
-        DRIFT.lastLedgerStep = ledgerStepId;
+    // Verification evidence
+    if (hadVerificationEvidence) {
+        DRIFT.verificationEvidenceRounds++;
     }
 
-    // Bug L fix: track state transitions (independent from ledger step changes)
-    if (currentState && currentState !== DRIFT.lastDriftState) {
-        DRIFT.stateTransitions++;
-        DRIFT.lastDriftState = currentState;
+    // Depth
+    const depthLikeTools = [
+        'read_file', 'grep_search', 'semantic_search', 'file_search',
+        'get_errors', 'get_terminal_output',
+        'read_page', 'screenshot_page', 'fetch_webpage'
+    ];
+    DRIFT.depthEvidenceCount += realToolCallNames.filter(n => depthLikeTools.includes(n)).length;
+    DRIFT.totalRealToolCalls += realToolCallNames.length;
+
+    // Progress event
+    const prevSnap = DRIFT.lastProgressSnapshot;
+    const nextSnap = ledgerSnapshot;
+    if (detectProgressEvent(prevSnap, nextSnap)) {
+        DRIFT.progressEvents++;
+    }
+    DRIFT.lastProgressSnapshot = nextSnap;
+
+    // Stability
+    if (DRIFT.lastEffectiveState === null) {
+        DRIFT.lastEffectiveState = effectiveState;
+        DRIFT.stableStateRounds++;
+    } else if (DRIFT.lastEffectiveState === effectiveState) {
+        DRIFT.stableStateRounds++;
+    } else {
+        DRIFT.stateOscillationCount++;
+        DRIFT.lastEffectiveState = effectiveState;
     }
 }
 
 function computeQualityDrift() {
-    if (DRIFT.roundsInWindow < DRIFT.WINDOW_SIZE) return null; // not enough data
+    if (DRIFT.roundsInWindow < DRIFT.WINDOW_SIZE) return null;
 
-    // Bug K fix: verificationRatio now measures write-then-verify pairs, not just any read
-    // Bug M fix: all metrics normalized to round-based (per totalActions)
-    const verificationRatio = DRIFT.writeRounds > 0 ? DRIFT.verifiedAfterWrite / DRIFT.writeRounds : 1.0; // no writes = fully verified
-    const closureRatio = DRIFT.totalActions > 0 ? Math.min(1, DRIFT.ledgerStepChanges / DRIFT.totalActions) : 0;
-    const depthScore = DRIFT.totalActions > 0 ? Math.min(1, DRIFT.depthReads / DRIFT.totalActions) : 0; // Bug M: per-round, not per-call
-    const transitionDensity = DRIFT.roundsInWindow > 0 ? DRIFT.stateTransitions / DRIFT.roundsInWindow : 0;
+    const validRounds = Math.max(1, DRIFT.validRoundsInWindow);
+    const realToolCalls = Math.max(1, DRIFT.totalRealToolCalls);
 
-    const metrics = { verificationRatio, closureRatio, depthScore, transitionDensity };
+    // 1. Verification Evidence Score (0.30)
+    const verificationEvidenceScore = DRIFT.verificationEvidenceRounds / validRounds;
 
-    let belowThreshold = 0;
-    if (verificationRatio < DRIFT.VERIFICATION_RATIO_MIN) belowThreshold++;
-    if (closureRatio < DRIFT.CLOSURE_RATIO_MIN) belowThreshold++;
-    if (depthScore < DRIFT.DEPTH_SCORE_MIN) belowThreshold++;
-    if (transitionDensity < DRIFT.TRANSITION_DENSITY_MIN) belowThreshold++;
+    // 2. Progress Event Score (0.30) — discrete, not density-per-round
+    const progressEventScore =
+        DRIFT.progressEvents >= 2 ? 1.0 :
+        DRIFT.progressEvents === 1 ? 0.6 :
+        0.0;
 
-    const drifting = belowThreshold >= 2;
+    // 3. Depth Score (0.20)
+    const depthScore = DRIFT.depthEvidenceCount / realToolCalls;
 
-    if (drifting) {
+    // 4. Stability Score (0.20) — penalize oscillation, reward coherence
+    const stabilityScore = Math.max(0,
+        (DRIFT.stableStateRounds - DRIFT.stateOscillationCount) / validRounds
+    );
+
+    const metrics = {
+        verificationEvidenceScore,
+        progressEventScore,
+        depthScore,
+        stabilityScore,
+        phantomOnlyRoundsWindow: PHANTOM.phantomOnlyRoundsWindow,
+        phantomDominantRoundsWindow: PHANTOM.phantomDominantRoundsWindow,
+        validRounds
+    };
+
+    // Weighted score
+    const score =
+        verificationEvidenceScore * 0.30 +
+        progressEventScore * 0.30 +
+        depthScore * 0.20 +
+        stabilityScore * 0.20;
+
+    const shouldEnterRepair = score < DRIFT.SCORE_REPAIR_ENTER;
+    const shouldExitRepair = score >= DRIFT.SCORE_REPAIR_EXIT;
+
+    if (shouldEnterRepair) {
         DRIFT.consecutiveBadWindows++;
     } else {
         DRIFT.consecutiveBadWindows = 0;
@@ -261,9 +396,10 @@ function computeQualityDrift() {
                 ts: new Date().toISOString(),
                 event: 'drift_check',
                 metrics,
-                belowThreshold,
+                score,
+                shouldEnterRepair,
+                shouldExitRepair,
                 consecutiveBadWindows: DRIFT.consecutiveBadWindows,
-                shouldRepair,
                 inRepair: DRIFT.inRepair
             };
             fs.appendFileSync(metricsPath, JSON.stringify(entry) + '\n', 'utf-8');
@@ -272,20 +408,19 @@ function computeQualityDrift() {
 
     // Reset window
     DRIFT.roundsInWindow = 0;
-    DRIFT.verifyActions = 0;
-    DRIFT.totalActions = 0;
-    DRIFT.ledgerStepChanges = 0;
-    DRIFT.depthReads = 0;
-    DRIFT.totalToolCalls = 0;
-    DRIFT.stateTransitions = 0;    // Bug L fix: reset transition counter
-    DRIFT.lastLedgerStep = null;  // Bug N fix: reset per-window reference point
-    DRIFT.lastDriftState = null;  // Bug L fix: reset state reference
-    DRIFT.lastRoundHadWrite = false;  // Bug K fix: reset write-verify tracking
-    DRIFT.verifiedAfterWrite = 0;
-    DRIFT.writeRounds = 0;
+    DRIFT.validRoundsInWindow = 0;
+    DRIFT.verificationEvidenceRounds = 0;
+    DRIFT.depthEvidenceCount = 0;
+    DRIFT.totalRealToolCalls = 0;
+    DRIFT.progressEvents = 0;
+    DRIFT.stableStateRounds = 0;
+    DRIFT.stateOscillationCount = 0;
     DRIFT.lastDriftCheck = Date.now();
+    DRIFT.lastEffectiveState = null;
+    PHANTOM.phantomOnlyRoundsWindow = 0;
+    PHANTOM.phantomDominantRoundsWindow = 0;
 
-    return { metrics, belowThreshold, drifting, shouldRepair };
+    return { metrics, score, shouldRepair, shouldExitRepair };
 }
 
 function enterRepairState() {
@@ -683,17 +818,53 @@ function buildContextualPrompt(purpose, agentState) {
     }
 }
 
-// ─── State Inference (v2.1) ──────────────────────────────────────────────────
-// Infers agent state from tool call patterns instead of relying on LLM compliance.
-// The LLM can still write agent_state.json, but the extension overrides if evidence
-// contradicts the declared state.
+// ─── State Inference (v2.11.0) ───────────────────────────────────────────────
+// Infers agent state from tool call patterns with semantic browser/terminal classification.
 
-const WRITE_TOOLS = ['replace_string_in_file', 'multi_replace_string_in_file', 'create_file'];
-const VERIFY_TOOLS = ['read_file', 'get_errors', 'grep_search', 'semantic_search', 'file_search', 'get_terminal_output'];
-const AMBIGUOUS_TOOLS = ['run_in_terminal']; // can be write or verify depending on context
-const META_TOOLS = ['memory', 'manage_todo_list'];
-const BROWSER_TOOLS = ['read_page', 'click_element', 'type_in_page', 'navigate_page', 'screenshot_page',
-                       'hover_element', 'run_playwright_code', 'open_browser_page', 'fetch_webpage'];
+const WRITE_TOOLS = ['replace_string_in_file', 'multi_replace_string_in_file', 'create_file', 'create_directory'];
+const VERIFY_TOOLS = ['read_file', 'get_errors', 'grep_search', 'semantic_search', 'file_search',
+                      'get_terminal_output', 'list_dir', 'view_image'];
+const META_TOOLS = ['memory', 'manage_todo_list', 'runSubagent'];
+const BROWSER_VERIFY_TOOLS = ['read_page', 'screenshot_page', 'fetch_webpage'];
+const BROWSER_EXECUTE_TOOLS = ['open_browser_page', 'navigate_page', 'click_element',
+                               'type_in_page', 'hover_element', 'drag_element'];
+
+function classifyTerminalCommand(commandText) {
+    const cmd = (commandText || '').toLowerCase();
+    const verifyPatterns = [
+        'node -c', 'npm test', 'pnpm test', 'yarn test', 'pytest',
+        'grep ', 'findstr ', 'git diff', 'git status', 'git log',
+        'type ', 'cat ', 'dir', 'get-content', 'select-string',
+        'test-path', 'get-childitem'
+    ];
+    const executePatterns = [
+        'npm install', 'pnpm add', 'yarn add',
+        'git apply', 'copy-item', 'move-item', 'set-content',
+        'writealltext', 'deploy', 'patch', 'mkdir', 'new-item',
+        'git commit', 'git push'
+    ];
+    if (verifyPatterns.some(p => cmd.includes(p))) return 'verifying';
+    if (executePatterns.some(p => cmd.includes(p))) return 'executing';
+    return 'ambiguous';
+}
+
+function classifyPlaywrightCode(codeText) {
+    const code = (codeText || '').toLowerCase();
+    const verifyPatterns = [
+        'textcontent', 'innertext', 'innerhtml', 'getattribute',
+        'evaluate(', 'alltextcontents', 'screenshot', 'waitfortimeout'
+    ];
+    const executePatterns = [
+        '.click(', '.fill(', '.type(', '.press(', '.goto(',
+        '.check(', '.uncheck(', '.selectoption(', '.dragto(',
+        'execcommand'
+    ];
+    const hasVerify = verifyPatterns.some(p => code.includes(p));
+    const hasExecute = executePatterns.some(p => code.includes(p));
+    if (hasVerify && !hasExecute) return 'verifying';
+    if (hasExecute && !hasVerify) return 'executing';
+    return 'ambiguous';
+}
 
 function detectGptConsultation(roundToolCalls) {
     // Detect GPT consultation by checking browser tool call arguments for chatgpt.com
@@ -713,119 +884,211 @@ function detectGptConsultation(roundToolCalls) {
     return false;
 }
 
-function inferStateFromToolCalls(callNames, currentDeclaredState) {
-    const realCalls = callNames.filter(n => !isPhantomToolCall(n));
-    if (realCalls.length === 0) return currentDeclaredState; // no real calls, keep declared
+function inferStateFromToolCalls(toolCalls, currentDeclaredState) {
+    const realCalls = toolCalls.filter(tc => !isPhantomToolCall(tc.name || tc));
+    if (realCalls.length === 0) return currentDeclaredState || 'idle_active';
 
-    const hasWrite = realCalls.some(n => WRITE_TOOLS.includes(n));
-    const hasVerify = realCalls.some(n => VERIFY_TOOLS.includes(n));
-    const hasMeta = realCalls.some(n => META_TOOLS.includes(n));
-    const hasAmbiguous = realCalls.some(n => AMBIGUOUS_TOOLS.includes(n));
-    const onlyVerify = realCalls.every(n => VERIFY_TOOLS.includes(n) || AMBIGUOUS_TOOLS.includes(n));
-    const onlyMeta = realCalls.every(n => META_TOOLS.includes(n));
+    let executeScore = 0;
+    let verifyScore = 0;
+    let planningScore = 0;
+    let reflectingScore = 0;
 
-    if (hasWrite) return 'executing';
-    if (onlyVerify && !hasWrite) return 'verifying'; // run_in_terminal alone = likely verify (node -c, test, etc.)
-    if (onlyMeta && currentDeclaredState === 'reflecting') return 'reflecting';
-    if (onlyMeta) return 'planning';
-    return 'executing'; // default for mixed/unknown patterns
+    for (const tc of realCalls) {
+        const name = typeof tc === 'string' ? tc : (tc.name || 'unknown');
+        const args = typeof tc === 'string' ? '' : (tc.arguments || '');
+
+        if (WRITE_TOOLS.includes(name)) { executeScore += 2; continue; }
+        if (VERIFY_TOOLS.includes(name)) { verifyScore += 2; continue; }
+        if (META_TOOLS.includes(name)) {
+            if (currentDeclaredState === 'reflecting') reflectingScore += 2;
+            else planningScore += 2;
+            continue;
+        }
+        if (BROWSER_VERIFY_TOOLS.includes(name)) { verifyScore += 2; continue; }
+        if (BROWSER_EXECUTE_TOOLS.includes(name)) { executeScore += 2; continue; }
+
+        if (name === 'run_in_terminal') {
+            const termState = classifyTerminalCommand(args);
+            if (termState === 'verifying') verifyScore += 2;
+            else if (termState === 'executing') executeScore += 2;
+            else {
+                if (currentDeclaredState === 'verifying') verifyScore += 1;
+                else executeScore += 1;
+            }
+            continue;
+        }
+
+        if (name === 'run_playwright_code') {
+            const pwState = classifyPlaywrightCode(args);
+            if (pwState === 'verifying') verifyScore += 2;
+            else if (pwState === 'executing') executeScore += 2;
+            else { executeScore += 1; verifyScore += 1; }
+            continue;
+        }
+
+        // fallback: unknown tool
+        executeScore += 1;
+    }
+
+    if (reflectingScore > Math.max(executeScore, verifyScore, planningScore)) return 'reflecting';
+    if (planningScore > Math.max(executeScore, verifyScore)) return 'planning';
+    if (verifyScore > executeScore) return 'verifying';
+    return 'executing';
 }
 
-function syncInferredState(inferred, agentState) {
-    // Always update the inferred_state field
-    agentState.inferred_state = inferred;
+function resolveEffectiveState({ agentState, inferredState, inRepair, ledgerSnapshot }) {
+    const declaredState = agentState.declared_state || agentState.state || 'idle_active';
+    STATE_MODEL.declared = declaredState;
+    STATE_MODEL.inferred = inferredState;
 
-    // Bug G fix: NEVER override repair state — drift detector owns it
-    if (DRIFT.inRepair || agentState.state === 'repair') {
-        ROLLING.roundsSinceStateTransition++;
-        writeAgentState(agentState);
-        return;
+    if (inRepair) {
+        STATE_MODEL.effective = 'repair';
+        STATE_MODEL.confidence = 1.0;
+        STATE_MODEL.inferredConsistency = 0;
+        return { effectiveState: 'repair', confidence: 1.0, reason: 'repair_override' };
     }
 
-    // Grace period: if LLM intentionally declared state within last 3 rounds, respect it
-    const llmDeclared = agentState.last_transition_reason && agentState.last_transition_reason !== 'inferred_from_tool_calls';
-    const recentlyDeclared = llmDeclared && ROLLING.roundsSinceStateTransition < 3;
-
-    if (recentlyDeclared) {
-        // LLM's declared intent takes priority; record inferred but don't change effective state
-        agentState.declared_state = agentState.state;
-        ROLLING.roundsSinceStateTransition++;
-        writeAgentState(agentState);
-        return;
-    }
-
-    // Inferred state wins — update effective state
-    if (inferred !== agentState.state) {
-        agentState.previous_state = agentState.state;
-        agentState.state = inferred;
-        agentState.last_transition_at = new Date().toISOString();
-        agentState.last_transition_reason = 'inferred_from_tool_calls';
-        writeAgentState(agentState);
-        ROLLING.roundsSinceStateTransition = 0;
+    // Track inferred consistency
+    if (STATE_MODEL.inferred === inferredState && STATE_MODEL.inferredConsistency > 0) {
+        STATE_MODEL.inferredConsistency++;
     } else {
-        ROLLING.roundsSinceStateTransition++;
+        STATE_MODEL.inferred = inferredState;
+        STATE_MODEL.inferredConsistency = 1;
     }
+
+    // Fresh declared state tracking
+    if (agentState.last_transition_reason && agentState.last_transition_reason !== 'inferred_from_tools') {
+        STATE_MODEL.declaredFreshRounds = Math.min(5, STATE_MODEL.declaredFreshRounds + 1);
+    } else {
+        STATE_MODEL.declaredFreshRounds = Math.max(0, STATE_MODEL.declaredFreshRounds - 1);
+    }
+
+    // Confidence scoring
+    let declaredConfidence = 0;
+    let inferredConfidence = 0;
+
+    // Declared state confidence
+    if (STATE_MODEL.declaredFreshRounds > 0) declaredConfidence += 0.4;
+    if (ledgerSnapshot && ledgerSnapshot.taskId && declaredState === 'executing') declaredConfidence += 0.2;
+    if ((!ledgerSnapshot || !ledgerSnapshot.taskId) && (declaredState === 'planning' || declaredState === 'reflecting')) declaredConfidence += 0.2;
+
+    // Inferred state confidence
+    if (STATE_MODEL.inferredConsistency >= 2) inferredConfidence += 0.4;
+    if (inferredState === 'verifying') inferredConfidence += 0.1;
+    if (inferredState === 'executing' && ledgerSnapshot && ledgerSnapshot.taskId) inferredConfidence += 0.2;
+    if (inferredState === 'planning' && (!ledgerSnapshot || !ledgerSnapshot.taskId)) inferredConfidence += 0.2;
+
+    let effectiveState = declaredState;
+    let reason = 'declared_preferred';
+    let confidence = declaredConfidence;
+
+    if (inferredConfidence > declaredConfidence + 0.1) {
+        effectiveState = inferredState;
+        reason = 'inferred_preferred';
+        confidence = inferredConfidence;
+    }
+
+    if (STATE_MODEL.effective !== effectiveState) {
+        STATE_MODEL.lastEffectiveChangeAt = Date.now();
+    }
+    STATE_MODEL.effective = effectiveState;
+    STATE_MODEL.confidence = confidence;
+
+    return { effectiveState, confidence, reason };
 }
 
-// ─── Nudge System ────────────────────────────────────────────────────────────
-// Returns a nudge purpose string if conditions warrant, or null.
-// Implements backoff: after a nudge fires, wait NUDGE_BACKOFF rounds before repeating the same type.
+// ─── Nudge System (v2.11.0) ──────────────────────────────────────────────────
+// Split into two routers: operational (verify, ledger, decision_collapse) and
+// meta-cognitive (reflect, gpt_debrief). Meta never preempts operational.
 
 const NUDGE_STATE = {
-    lastNudgeType: null,
-    roundsSinceLastNudge: 0,
-    BACKOFF_ROUNDS: 5  // don't repeat same nudge type within 5 rounds
+    lastOperationalNudgeType: null,
+    lastMetaNudgeType: null,
+    roundsSinceLastOperationalNudge: 999,
+    roundsSinceLastMetaNudge: 999,
+    OP_BACKOFF_ROUNDS: 4,
+    META_BACKOFF_ROUNDS: 6
 };
 
-function shouldNudge(agentState) {
-    NUDGE_STATE.roundsSinceLastNudge++;
+function shouldOperationalNudge(agentState, rolling, ledger) {
+    NUDGE_STATE.roundsSinceLastOperationalNudge++;
+    const effectiveState = agentState.effective_state || agentState.state || 'idle_active';
+    if (effectiveState === 'cooling') return null;
 
-    // Don't nudge during cooling or equilibrium (unless state was inferred)
-    if (agentState.state === 'cooling') return null;
-    if (agentState.state === 'equilibrium' && agentState.last_transition_reason !== 'inferred_from_tool_calls') return null;
+    const hasCurrentTask = !!(ledger && ledger.current_task && ledger.current_task.id);
+    const currentTaskDone = !!(ledger && ledger.current_task && (
+        ledger.current_task.status === 'done' || ledger.current_task.status === 'completed'
+    ));
 
     let candidate = null;
 
-    // REFLEXION (v2.10.0): pending reflection takes highest priority
-    // Fires once after failure events (repair exit, compulsive loop, etc.)
-    if (REFLEXION.pendingReflection) {
-        candidate = 'reflect';
-    }
-
-    // GPT debrief: task just completed (ledger updated recently) and no current task
-    // This fires once after task completion to suggest a GPT debrief
-    if (ROLLING.roundsSinceLedgerUpdate <= 2 && ROLLING.roundsSinceGptConsult >= 3) {
-        const ledger = readTaskLedger();
-        if (ledger && !ledger.current_task && (ledger.completed_tasks || []).length > 0) {
-            candidate = 'gpt_debrief';
-        }
-    }
-
-    // DECISION COLLAPSE (v2.9.0): forced action after too many rounds without meaningful state change
-    // Only fires when GPT was recently consulted (not info deficit) — this is the hard constraint
-    if (!candidate && ROLLING.roundsSinceLastDecision >= ROLLING.DECISION_COLLAPSE_THRESHOLD
-        && ROLLING.roundsSinceGptConsult < 2) {
+    // Highest operational priority: decision collapse
+    if (rolling.roundsSinceLastDecision >= rolling.DECISION_COLLAPSE_THRESHOLD
+        && rolling.roundsSinceGptConsult < 2
+        && !rolling.blockDeclaredRecently) {
         candidate = 'decision_collapse';
     }
 
-    // Verification nudge: 5+ rounds of real tool calls without any verify-type calls
-    if (!candidate && ROLLING.roundsSinceVerification >= 5) {
+    // Then verification
+    if (!candidate && rolling.roundsSinceVerification >= 5 && hasCurrentTask && !currentTaskDone) {
         candidate = 'nudge_verify';
     }
-    // Ledger update nudge: 8+ rounds without touching the ledger
-    else if (!candidate && ROLLING.roundsSinceLedgerUpdate >= 8) {
+
+    // Then ledger hygiene
+    if (!candidate && rolling.roundsSinceLedgerUpdate >= 8 && hasCurrentTask && !currentTaskDone) {
         candidate = 'nudge_ledger';
     }
 
     if (!candidate) return null;
 
-    // Backoff: don't repeat the same nudge type within BACKOFF_ROUNDS
-    if (candidate === NUDGE_STATE.lastNudgeType && NUDGE_STATE.roundsSinceLastNudge < NUDGE_STATE.BACKOFF_ROUNDS) {
-        return null; // suppress repeated nudge
+    // Backoff: don't repeat same nudge type
+    if (candidate === NUDGE_STATE.lastOperationalNudgeType &&
+        NUDGE_STATE.roundsSinceLastOperationalNudge < NUDGE_STATE.OP_BACKOFF_ROUNDS) {
+        return null;
     }
 
-    NUDGE_STATE.lastNudgeType = candidate;
-    NUDGE_STATE.roundsSinceLastNudge = 0;
+    NUDGE_STATE.lastOperationalNudgeType = candidate;
+    NUDGE_STATE.roundsSinceLastOperationalNudge = 0;
+    return candidate;
+}
+
+function shouldMetaNudge(agentState, ledger, operationalNudge, rolling) {
+    NUDGE_STATE.roundsSinceLastMetaNudge++;
+    const effectiveState = agentState.effective_state || agentState.state || 'idle_active';
+    if (effectiveState === 'cooling' || effectiveState === 'repair') return null;
+
+    // Meta cannot preempt operational
+    if (operationalNudge) return null;
+
+    const hasCurrentTask = !!(ledger && ledger.current_task && ledger.current_task.id);
+    const currentTaskDone = !!(ledger && ledger.current_task && (
+        ledger.current_task.status === 'done' || ledger.current_task.status === 'completed'
+    ));
+    const noCurrentTask = !hasCurrentTask || currentTaskDone;
+
+    let candidate = null;
+
+    // Reflection first, but only if no active operational instability
+    if (REFLEXION.pendingReflection && noCurrentTask) {
+        candidate = 'reflect';
+    }
+
+    // GPT debrief only when task just completed and GPT not consulted recently
+    const ledgerUpdatedRecently = rolling.roundsSinceLedgerUpdate <= 2;
+    if (!candidate && ledgerUpdatedRecently && noCurrentTask && rolling.roundsSinceGptConsult >= 3) {
+        candidate = 'gpt_debrief';
+    }
+
+    if (!candidate) return null;
+
+    // Backoff: don't repeat same meta nudge type
+    if (candidate === NUDGE_STATE.lastMetaNudgeType &&
+        NUDGE_STATE.roundsSinceLastMetaNudge < NUDGE_STATE.META_BACKOFF_ROUNDS) {
+        return null;
+    }
+
+    NUDGE_STATE.lastMetaNudgeType = candidate;
+    NUDGE_STATE.roundsSinceLastMetaNudge = 0;
     return candidate;
 }
 
@@ -1118,39 +1381,7 @@ async function onLoopCheck(roundData, loopInstance) {
             }
         }
 
-        // ── Decision Collapse: track meaningful state changes (v2.9.0) ──
-        ROLLING.roundsSinceLastDecision++;
-        let isDecision = false;
-        if (isStructuralChange) isDecision = true; // code modification = decision
-        if (ledgerModified) {
-            const freshLedger = readTaskLedger();
-            if (freshLedger && freshLedger.current_task) {
-                const newId = freshLedger.current_task.id;
-                const newStatus = freshLedger.current_task.status;
-                if (newId !== ROLLING.lastKnownTaskId || newStatus !== ROLLING.lastKnownTaskStatus) {
-                    isDecision = true;
-                }
-                ROLLING.lastKnownTaskId = newId;
-                ROLLING.lastKnownTaskStatus = newStatus;
-            }
-        }
-        if (agentState.state !== ROLLING.lastKnownAgentState) {
-            isDecision = true;
-            ROLLING.lastKnownAgentState = agentState.state;
-        }
-        if (isDecision) {
-            ROLLING.roundsSinceLastDecision = 0;
-            ROLLING.consecutiveBlockDeclarations = 0;
-        }
-
-        // ── State inference (v2.1): override declared state from tool evidence ──
-        const inferredState = inferStateFromToolCalls(callNames, agentState.state);
-        syncInferredState(inferredState, agentState);
-        METRICS.state = inferredState === 'verifying' ? 'Verifying' :
-                        inferredState === 'planning' ? 'Planning' :
-                        inferredState === 'reflecting' ? 'Reflecting' : 'Executing';
-
-        // Check if ledger was modified since last check (catches all write methods: file tools, terminal, external)
+        // ── Ledger modification check (v2.11: moved before Decision Collapse to fix TDZ bug) ──
         const root = getWorkspaceRoot();
         const ledgerPath = root ? path.join(root, '.scarlet', 'task_ledger.json') : null;
         let ledgerModified = false;
@@ -1168,12 +1399,59 @@ async function onLoopCheck(roundData, loopInstance) {
             ROLLING.roundsSinceLedgerUpdate = 0;
         }
 
+        // Read ledger for snapshot (v2.11: used by state resolution and drift)
+        const ledger = ledgerPath ? readJsonSafe(ledgerPath, null) : null;
+        const ledgerSnapshot = getCurrentTaskSnapshot(ledger);
+
+        // ── Decision Collapse: track meaningful state changes (v2.9.0) ──
+        ROLLING.roundsSinceLastDecision++;
+        let isDecision = false;
+        if (isStructuralChange) isDecision = true;
+        if (ledgerModified && ledger && ledger.current_task) {
+            const newId = ledger.current_task.id;
+            const newStatus = ledger.current_task.status;
+            if (newId !== ROLLING.lastKnownTaskId || newStatus !== ROLLING.lastKnownTaskStatus) {
+                isDecision = true;
+            }
+            ROLLING.lastKnownTaskId = newId;
+            ROLLING.lastKnownTaskStatus = newStatus;
+        }
+        if (agentState.state !== ROLLING.lastKnownAgentState) {
+            isDecision = true;
+            ROLLING.lastKnownAgentState = agentState.state;
+        }
+        if (isDecision) {
+            ROLLING.roundsSinceLastDecision = 0;
+            ROLLING.consecutiveBlockDeclarations = 0;
+        }
+
+        // ── State inference (v2.11: semantic tool classification + confidence-based resolution) ──
+        const inferredState = inferStateFromToolCalls(roundData.round.toolCalls, agentState.state);
+        const resolved = resolveEffectiveState({
+            agentState,
+            inferredState,
+            inRepair: DRIFT.inRepair,
+            ledgerSnapshot
+        });
+        // Update agent state with resolved effective state
+        if (resolved.effectiveState !== agentState.state || resolved.confidence !== agentState.state_confidence) {
+            agentState.previous_state = agentState.state;
+            agentState.state = resolved.effectiveState;
+            agentState.effective_state = resolved.effectiveState;
+            agentState.state_confidence = resolved.confidence;
+            agentState.last_transition_reason = resolved.reason;
+            writeAgentState(agentState);
+        }
+        METRICS.state = resolved.effectiveState === 'verifying' ? 'Verifying' :
+                        resolved.effectiveState === 'planning' ? 'Planning' :
+                        resolved.effectiveState === 'reflecting' ? 'Reflecting' :
+                        resolved.effectiveState === 'repair' ? 'Repair' : 'Executing';
+
         // ── Reflexion: check if reflection was written (v2.10.0) ──
         if (REFLEXION.pendingReflection && checkReflectionWritten()) {
             console.log('[LOOP-GUARDIAN] Reflection written, clearing pending request');
             REFLEXION.pendingReflection = null;
         }
-        // Auto-expire stale reflection requests (after 10 rounds without writing)
         if (REFLEXION.pendingReflection && REFLEXION.pendingReflection.requestedAt) {
             const roundsSinceRequest = Math.floor((Date.now() - REFLEXION.pendingReflection.requestedAt) / 5000);
             if (roundsSinceRequest > 10) {
@@ -1182,52 +1460,42 @@ async function onLoopCheck(roundData, loopInstance) {
             }
         }
 
-        // Check for verification actions (re-reads, get_errors, test runs)
-        const verificationActions = ['read_file', 'get_errors', 'grep_search'];
-        const hasVerification = callNames.some(n => verificationActions.includes(n));
-        // v2.1: reset verification counter when verify-type actions occur, regardless of declared state
-        if (hasVerification && (inferredState === 'verifying' || realCount > 0)) {
+        // ── Verification detection (v2.11: uses VERIFY_TOOLS + BROWSER_VERIFY_TOOLS) ──
+        const hadVerificationEvidence = callNames.some(n =>
+            VERIFY_TOOLS.includes(n) || BROWSER_VERIFY_TOOLS.includes(n)
+        );
+        if (hadVerificationEvidence && realCount > 0) {
             ROLLING.roundsSinceVerification = 0;
         }
 
-        // ── Quality Drift: track this round and check (v2.5: skip phantom-only rounds) ──
+        // ── Quality Drift (v2.11: semantic drift with phantom separation) ──
         const realCallNames = callNames.filter(n => !isPhantomToolCall(n));
-        let currentStepId = null;
-        if (ledgerPath) {
-            try {
-                const ledger = readJsonSafe(ledgerPath, null);
-                if (ledger.current_task && ledger.current_task.steps) {
-                    const step = ledger.current_task.steps.find(s => s.status === 'executing' || s.status === 'pending');
-                    currentStepId = step ? (step.id || step.name || null) : null;
-                }
-            } catch {}
-        }
-        // v2.5: Only count rounds with real tool calls in drift detector
-        if (realCallNames.length > 0) {
-            pushDriftRound(realCallNames, hasVerification, currentStepId, agentState.state);
-        }
+        pushDriftRound({
+            toolCallNames: callNames,
+            realToolCallNames: realCallNames,
+            effectiveState: resolved.effectiveState,
+            hadVerificationEvidence,
+            ledgerSnapshot
+        });
         const driftResult = computeQualityDrift();
         if (driftResult) {
             if (driftResult.shouldRepair) {
                 enterRepairState();
-            } else if (DRIFT.inRepair && driftResult.belowThreshold < 2) {
-                exitRepairState();
+            } else if (DRIFT.inRepair && driftResult.score >= DRIFT.SCORE_REPAIR_EXIT) {
+                exitRepairState('quality_recovered_score_' + driftResult.score.toFixed(2));
             }
         }
-        // v2.5: Repair escape valve — auto-exit after REPAIR_MAX_ROUNDS
-        // Bug O fix: check partial window for recovery signs before blind exit
+        // v2.11: Repair escape valve — auto-exit after REPAIR_MAX_ROUNDS
         if (DRIFT.inRepair) {
             DRIFT.repairRoundsElapsed++;
             if (DRIFT.repairRoundsElapsed >= DRIFT.REPAIR_MAX_ROUNDS) {
-                // Check partial window: if we have some data, see if metrics are recovering
-                const partialOk = DRIFT.totalActions > 0 && (
-                    (DRIFT.writeRounds === 0 || DRIFT.verifiedAfterWrite / DRIFT.writeRounds >= DRIFT.VERIFICATION_RATIO_MIN) &&
-                    DRIFT.depthReads / DRIFT.totalActions >= DRIFT.DEPTH_SCORE_MIN
-                );
-                exitRepairState(partialOk ? 'escape_valve_recovering' : 'escape_valve_timeout_' + DRIFT.repairRoundsElapsed + '_rounds');
+                const partialScore = driftResult ? driftResult.score : 0;
+                exitRepairState(partialScore >= DRIFT.SCORE_REPAIR_ENTER
+                    ? 'escape_valve_recovering'
+                    : 'escape_valve_timeout_' + DRIFT.repairRoundsElapsed + '_rounds');
             }
         }
-        // v2.5: Repair nudge with cooldown (every REPAIR_NUDGE_INTERVAL rounds, not every round)
+        // Repair nudge with cooldown (every REPAIR_NUDGE_INTERVAL rounds)
         let injectedThisRound = false;
         if (DRIFT.inRepair) {
             DRIFT.repairNudgeCooldown++;
@@ -1315,11 +1583,13 @@ async function onLoopCheck(roundData, loopInstance) {
                 injectedThisRound = true;
                 console.log('[LOOP-GUARDIAN] GPT pre-change nudge: structural file modification detected');
             }
-            // Normal nudges
+            // Normal nudges (v2.11: split into operational + meta routers)
             if (!injectedThisRound) {
-                const nudge = shouldNudge(agentState);
-                if (nudge && realCount > 0) {
-                    injectNudge(roundData, loopInstance, nudge, agentState);
+                const opNudge = shouldOperationalNudge(agentState, ROLLING, ledger);
+                const metaNudge = shouldMetaNudge(agentState, ledger, opNudge, ROLLING);
+                const finalNudge = opNudge || metaNudge;
+                if (finalNudge && realCount > 0) {
+                    injectNudge(roundData, loopInstance, finalNudge, agentState);
                     injectedThisRound = true;
                 }
             }
