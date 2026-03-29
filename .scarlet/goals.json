@@ -1,6 +1,6 @@
 {
   "schema_version": "3.0.0",
-  "last_updated": "2026-03-29T18:02:37.754Z",
+  "last_updated": "2026-03-29T18:10:13.073Z",
   "near_impossible_goal": "Autonomous persistent entity with eventual embodiment",
   "notes": "Goal graph v3. Co-designed with GPT. Focus: robustezza runtime, qualita semantica, modularizzazione, crescita autonoma.",
   "layers": [
@@ -494,7 +494,7 @@
           "title": "Centralized Policy Config",
           "description": "Configurazione centralizzata per soglie, timeout, pesi.",
           "priority": "P1",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             "cog_007",
             "cog_008"
@@ -503,7 +503,9 @@
             "Config object centrale",
             "Tutte le soglie in un posto",
             "Override via settings VS Code"
-          ]
+          ],
+          "artifact": "POLICY object, 33 params, 9 subsystems",
+          "notes": "v2.12: All magic numbers centralized. ROLLING, DRIFT, REFLEXION, VERIFICATION, COMPULSIVE_LOOP, NUDGE_STATE, LOG_CONFIG reference POLICY."
         },
         {
           "id": "exp_003",

@@ -1,10 +1,10 @@
 {
   "current_task": {
-    "id": "int_036",
-    "title": "cog_011: Activate Reflexion",
+    "id": "int_037",
+    "title": "exp_002: Centralized Policy Config",
     "source": "goals-v3",
     "priority": "P1",
-    "started_at": "2026-03-29T18:02:37.757Z",
+    "started_at": "2026-03-29T18:10:13.075Z",
     "status": "done"
   },
   "completed_tasks": [
@@ -73,6 +73,12 @@
       "title": "exp_003: Structured Logging",
       "completed_at": "2026-03-29T18:02:37.757Z",
       "outcome": "exp_003 done"
+    },
+    {
+      "id": "int_036",
+      "title": "cog_011: Activate Reflexion",
+      "completed_at": "2026-03-29T18:10:13.075Z",
+      "outcome": "cog_011 done"
     }
   ],
   "backlog_external": [
@@ -102,7 +108,7 @@
     }
   ],
   "stats": {
-    "total_completed": 33,
+    "total_completed": 35,
     "total_abandoned": 0
   }
 }
