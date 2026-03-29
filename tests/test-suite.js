@@ -1106,6 +1106,159 @@ suite('REST Control API (exp_007)', () => {
     });
 });
 
+// ─── Browser Interaction Abstraction (exp_008) ───────────────────────────────
+suite('Browser Interaction Abstraction (exp_008)', () => {
+
+    test('POLICY.browser has required keys', () => {
+        const b = T.POLICY.browser;
+        assert.ok(b, 'POLICY.browser exists');
+        assert.ok(typeof b.maxRetries === 'number');
+        assert.ok(typeof b.retryBaseDelayMs === 'number');
+        assert.ok(typeof b.timeoutMs === 'number');
+        assert.ok(typeof b.consultCooldownMs === 'number');
+        assert.ok(typeof b.maxConsecutiveFailures === 'number');
+    });
+
+    test('getBrowser returns object with expected methods', () => {
+        const br = T.getBrowser();
+        assert.ok(typeof br.getChatUrl === 'function');
+        assert.ok(typeof br.getSelectors === 'function');
+        assert.ok(typeof br.getRetryConfig === 'function');
+        assert.ok(typeof br.getRetryDelay === 'function');
+        assert.ok(typeof br.canConsult === 'function');
+        assert.ok(typeof br.generateSendCode === 'function');
+        assert.ok(typeof br.generateReadResponseCode === 'function');
+        assert.ok(typeof br.generateIsThinkingCode === 'function');
+        assert.ok(typeof br.generateWaitForResponseCode === 'function');
+        assert.ok(typeof br.buildConsultation === 'function');
+        assert.ok(typeof br.getModesForTrigger === 'function');
+        assert.ok(typeof br.recordConsultation === 'function');
+        assert.ok(typeof br.shouldBackoff === 'function');
+        assert.ok(typeof br.getState === 'function');
+    });
+
+    test('getChatUrl returns expected URL', () => {
+        const br = T.getBrowser();
+        assert.ok(br.getChatUrl().includes('chatgpt.com'));
+    });
+
+    test('getRetryConfig returns valid config', () => {
+        const br = T.getBrowser();
+        const rc = br.getRetryConfig();
+        assert.ok(rc.maxRetries >= 1);
+        assert.ok(rc.baseDelayMs > 0);
+        assert.ok(rc.maxDelayMs >= rc.baseDelayMs);
+        assert.ok(rc.timeoutMs > 0);
+    });
+
+    test('getRetryDelay increases with attempt', () => {
+        const br = T.getBrowser();
+        const d0 = br.getRetryDelay(0);
+        const d2 = br.getRetryDelay(2);
+        // d2 base should be 4x d0 base (exponential), but jitter means we check range
+        assert.ok(d0 > 0, 'delay > 0');
+        assert.ok(d2 > d0 * 1.5, 'later attempts have higher base delay');
+    });
+
+    test('generateSendCode produces valid JS with escaped message', () => {
+        const br = T.getBrowser();
+        const code = br.generateSendCode("Ciao dall'Italia\nNuova riga");
+        assert.ok(code.includes('execCommand'), 'uses DOM injection pattern');
+        assert.ok(code.includes('insertText'), 'uses insertText');
+        assert.ok(code.includes('sendBtn'), 'clicks send button');
+        assert.ok(code.includes("Ciao dall\\'Italia"), 'escapes single quotes');
+        assert.ok(code.includes('\\n'), 'escapes newlines');
+    });
+
+    test('generateReadResponseCode produces valid JS', () => {
+        const br = T.getBrowser();
+        const code = br.generateReadResponseCode();
+        assert.ok(code.includes('conversation-turn'), 'targets conversation turns');
+        assert.ok(code.includes('.markdown'), 'reads markdown content');
+        assert.ok(code.includes('return'), 'returns content');
+    });
+
+    test('generateIsThinkingCode checks for stop button', () => {
+        const br = T.getBrowser();
+        const code = br.generateIsThinkingCode();
+        assert.ok(code.includes('stop-button'), 'checks stop button indicator');
+    });
+
+    test('generateWaitForResponseCode has polling loop', () => {
+        const br = T.getBrowser();
+        const code = br.generateWaitForResponseCode(5000, 500);
+        assert.ok(code.includes('while'), 'has polling loop');
+        assert.ok(code.includes('5000'), 'uses provided timeout');
+        assert.ok(code.includes('500'), 'uses provided poll interval');
+    });
+
+    test('buildConsultation returns mode-specific message', () => {
+        const br = T.getBrowser();
+        const c = br.buildConsultation('idle', 'Test contesto');
+        assert.strictEqual(c.mode, 'A');
+        assert.strictEqual(c.name, 'Reality Check');
+        assert.ok(c.message.includes('Test contesto'));
+        assert.ok(c.message.includes('Reality Check'));
+    });
+
+    test('buildConsultation maps triggers to correct modes', () => {
+        const br = T.getBrowser();
+        assert.strictEqual(br.buildConsultation('post_task', 'x').mode, 'D');
+        assert.strictEqual(br.buildConsultation('drift', 'x').mode, 'A');
+        assert.strictEqual(br.buildConsultation('pre_change', 'x').mode, 'C');
+    });
+
+    test('getModesForTrigger returns array of mode info', () => {
+        const br = T.getBrowser();
+        const modes = br.getModesForTrigger('post_task');
+        assert.ok(Array.isArray(modes));
+        assert.ok(modes.length >= 1);
+        assert.strictEqual(modes[0].key, 'D');
+        assert.ok(modes[0].name);
+    });
+
+    test('canConsult returns true initially', () => {
+        const br = T.getBrowser();
+        assert.ok(br.canConsult());
+    });
+
+    test('recordConsultation updates state', () => {
+        const br = T.getBrowser();
+        br.recordConsultation(true, 'A');
+        const state = br.getState();
+        assert.ok(state.lastConsultTimestamp > 0);
+        assert.ok(state.consultCount >= 1);
+        assert.strictEqual(state.consecutiveFailures, 0);
+    });
+
+    test('shouldBackoff after consecutive failures', () => {
+        const br = T.getBrowser();
+        br.recordConsultation(false, 'A');
+        br.recordConsultation(false, 'A');
+        br.recordConsultation(false, 'A');
+        assert.ok(br.shouldBackoff(), 'should backoff after 3 failures');
+    });
+
+    test('getState returns comprehensive state', () => {
+        const br = T.getBrowser();
+        const state = br.getState();
+        assert.ok('lastConsultTimestamp' in state);
+        assert.ok('consultCount' in state);
+        assert.ok('consecutiveFailures' in state);
+        assert.ok('canConsult' in state);
+        assert.ok('shouldBackoff' in state);
+        assert.ok('retryConfig' in state);
+    });
+
+    test('static exports match module constants', () => {
+        const Browser = require('../lib/browser.js');
+        assert.ok(Browser.CHAT_URL.includes('chatgpt.com'));
+        assert.ok(Browser.SELECTORS.chatInput);
+        assert.ok(Browser.CONSULTATION_MODES.A);
+        assert.ok(Browser.TRIGGER_MODE_MAP.idle);
+    });
+});
+
 // ─── Summary ─────────────────────────────────────────────────────────────────
 
 console.log('\n' + '─'.repeat(50));

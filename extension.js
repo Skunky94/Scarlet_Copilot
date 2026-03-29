@@ -92,6 +92,16 @@ const POLICY = {
     api: {
         enabled: true,               // set false to disable API server
         defaultPort: 17532           // port to bind (auto-increments if in use)
+    },
+    // exp_008: Browser Interaction Abstraction
+    browser: {
+        maxRetries: 3,               // max retry attempts for browser operations
+        retryBaseDelayMs: 2000,      // base delay for exponential backoff
+        retryMaxDelayMs: 15000,      // max delay cap
+        timeoutMs: 30000,            // default operation timeout
+        consultCooldownMs: 300000,   // min 5 min between GPT consultations
+        responseWaitMs: 60000,       // max wait for GPT response
+        maxConsecutiveFailures: 3    // failures before backoff
     }
 };
 
@@ -609,6 +619,15 @@ function getApi() {
         scarletPath, fs
     });
     return _api;
+}
+
+// ─── Browser Interaction Abstraction (lazy-loaded from lib/browser.js, exp_008) ─
+let _browser = null;
+function getBrowser() {
+    if (!_browser) _browser = require('./lib/browser')({
+        POLICY, ROLLING, fs, scarletPath
+    });
+    return _browser;
 }
 
 function shouldBypassToolLimit(_request) {
@@ -1402,6 +1421,8 @@ if (process.env.SCARLET_TEST) {
         },
         // exp_007: API test helpers
         getApi,
-        getApiInfo: () => getApi().getApiInfo()
+        getApiInfo: () => getApi().getApiInfo(),
+        // exp_008: Browser abstraction test helpers
+        getBrowser
     };
 }
