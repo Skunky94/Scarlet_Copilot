@@ -603,7 +603,7 @@ let _api = null;
 function getApi() {
     if (!_api) _api = require('./lib/api')({
         METRICS, ROLLING, DRIFT, PHANTOM, STATE_MODEL, VERIFICATION, POLICY,
-        VERSION, getUptime, readAgentState, readTaskLedger,
+        VERSION, getUptime, readAgentState, writeAgentState, readTaskLedger,
         loadRecentReflections, buildMetricsLine,
         addToBuffer, getBufferCount,
         scarletPath, fs

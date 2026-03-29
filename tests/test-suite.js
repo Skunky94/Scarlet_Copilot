@@ -887,6 +887,107 @@ suite('REST Control API (exp_007)', () => {
         assert.ok(Array.isArray(res.body.alerts));
         await api.stop();
     });
+
+    test('POST /command pause sets cooling state', async () => {
+        const api = T.getApi();
+        const port = await api.start(19885);
+        const token = api.getApiInfo().token;
+        const body = JSON.stringify({ command: 'pause' });
+        const res = await new Promise((resolve, reject) => {
+            const options = {
+                hostname: '127.0.0.1', port, path: '/command', method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+            };
+            const req = http.request(options, (resp) => {
+                let data = '';
+                resp.on('data', c => data += c);
+                resp.on('end', () => resolve({ status: resp.statusCode, body: JSON.parse(data) }));
+            });
+            req.on('error', reject);
+            req.write(body);
+            req.end();
+        });
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.ok, true);
+        assert.strictEqual(res.body.command, 'pause');
+        await api.stop();
+    });
+
+    test('POST /command resume restores previous state', async () => {
+        const api = T.getApi();
+        const port = await api.start(19886);
+        const token = api.getApiInfo().token;
+        const body = JSON.stringify({ command: 'resume' });
+        const res = await new Promise((resolve, reject) => {
+            const options = {
+                hostname: '127.0.0.1', port, path: '/command', method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+            };
+            const req = http.request(options, (resp) => {
+                let data = '';
+                resp.on('data', c => data += c);
+                resp.on('end', () => resolve({ status: resp.statusCode, body: JSON.parse(data) }));
+            });
+            req.on('error', reject);
+            req.write(body);
+            req.end();
+        });
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.ok, true);
+        assert.strictEqual(res.body.command, 'resume');
+        await api.stop();
+    });
+
+    test('POST /command with invalid command returns 400', async () => {
+        const api = T.getApi();
+        const port = await api.start(19887);
+        const token = api.getApiInfo().token;
+        const body = JSON.stringify({ command: 'destroy_everything' });
+        const res = await new Promise((resolve, reject) => {
+            const options = {
+                hostname: '127.0.0.1', port, path: '/command', method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+            };
+            const req = http.request(options, (resp) => {
+                let data = '';
+                resp.on('data', c => data += c);
+                resp.on('end', () => resolve({ status: resp.statusCode, body: JSON.parse(data) }));
+            });
+            req.on('error', reject);
+            req.write(body);
+            req.end();
+        });
+        assert.strictEqual(res.status, 400);
+        assert.ok(res.body.valid_commands);
+        await api.stop();
+    });
+
+    test('POST /command reset_drift clears drift state', async () => {
+        const api = T.getApi();
+        const port = await api.start(19888);
+        const token = api.getApiInfo().token;
+        T.DRIFT.inRepair = true;
+        T.DRIFT.consecutiveBadWindows = 3;
+        const body = JSON.stringify({ command: 'reset_drift' });
+        const res = await new Promise((resolve, reject) => {
+            const options = {
+                hostname: '127.0.0.1', port, path: '/command', method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+            };
+            const req = http.request(options, (resp) => {
+                let data = '';
+                resp.on('data', c => data += c);
+                resp.on('end', () => resolve({ status: resp.statusCode, body: JSON.parse(data) }));
+            });
+            req.on('error', reject);
+            req.write(body);
+            req.end();
+        });
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(T.DRIFT.inRepair, false);
+        assert.strictEqual(T.DRIFT.consecutiveBadWindows, 0);
+        await api.stop();
+    });
 });
 
 // ─── Summary ─────────────────────────────────────────────────────────────────
