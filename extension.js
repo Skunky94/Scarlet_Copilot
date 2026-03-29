@@ -1,4 +1,4 @@
-// Scarlet Loop Guardian v2.11.0
+// Scarlet Loop Guardian v2.12.0
 // Exports 3 hooks consumed by micro-patches in Copilot Chat's extension.js:
 //   shouldBypassToolLimit, shouldBypassYield, onLoopCheck
 //
@@ -13,7 +13,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = 'v2.11.0'; // single source of truth for runtime version
+const VERSION = 'v2.12.0'; // single source of truth for runtime version
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
