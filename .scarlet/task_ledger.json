@@ -1,5 +1,12 @@
 {
-  "current_task": null,
+  "current_task": {
+    "id": "int_042",
+    "title": "idle_012: Idle Task Library",
+    "source": "goals-v3",
+    "priority": "P1",
+    "started_at": "2026-03-29T18:48:08.566Z",
+    "status": "in-progress"
+  },
   "completed_tasks": [
     {
       "id": "int_021",

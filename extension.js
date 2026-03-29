@@ -1688,6 +1688,157 @@ function shouldBypassYield(_request) {
 
 let lastIdleLifeTime = 0;
 
+// ─── idle_012: Idle Task Library ─────────────────────────────────────────────
+// Structured catalog of idle tasks with dynamic priority and rotation.
+// Each task has a priority function (returns 0-1, 0=skip), a cooldown,
+// and a directive string injected into the idle life prompt.
+
+const IDLE_TASK_HISTORY = {}; // { taskId: lastExecutedAt }
+
+const IDLE_TASK_LIBRARY = [
+    {
+        id: 'goal_work',
+        label: 'Work on next goal',
+        cooldownMs: 0,  // always available
+        priority: () => {
+            const g = getNextActionableGoal();
+            return g ? 1.0 : 0;
+        },
+        directive: () => {
+            const g = getNextActionableGoal();
+            return g
+                ? 'PRIORITY TASK: Work on goal ' + g.id + ' (' + g.title + ').\n' +
+                  '→ ' + (g.description || 'No description') + '\n' +
+                  '→ Plan steps in task_ledger.json and BEGIN WORKING immediately.'
+                : null;
+        }
+    },
+    {
+        id: 'state_validation',
+        label: 'Validate state files',
+        cooldownMs: 600000, // 10 min
+        priority: () => 0.7,
+        directive: () =>
+            'MAINTENANCE: Validate .scarlet/ state file integrity.\n' +
+            '→ Read agent_state.json, task_ledger.json, goals.json\n' +
+            '→ Check for stale tasks, completed items not archived, state mismatches\n' +
+            '→ Fix any inconsistencies found. Commit if changes made.'
+    },
+    {
+        id: 'memory_update',
+        label: 'Update memory files',
+        cooldownMs: 900000, // 15 min
+        priority: () => 0.6,
+        directive: () =>
+            'MEMORY: Update /memories/ with recent learnings.\n' +
+            '→ Review what you learned this session\n' +
+            '→ Update scarlet-cognitive-architecture.md if infrastructure changed\n' +
+            '→ Add any new patterns or anti-patterns discovered.'
+    },
+    {
+        id: 'syntax_check',
+        label: 'Run syntax verification',
+        cooldownMs: 300000, // 5 min
+        priority: () => 0.5,
+        directive: () =>
+            'VERIFICATION: Run node -c extension.js and verify deployment consistency.\n' +
+            '→ Compare deployed vs repo extension.js\n' +
+            '→ Check for syntax errors\n' +
+            '→ Report any discrepancies.'
+    },
+    {
+        id: 'metrics_review',
+        label: 'Review recent metrics',
+        cooldownMs: 1200000, // 20 min
+        priority: () => {
+            // Higher priority if many rounds have passed
+            return METRICS.totalRounds > 20 ? 0.65 : 0.3;
+        },
+        directive: () =>
+            'ANALYTICS: Review .scarlet/events.jsonl for patterns.\n' +
+            '→ Look at recent drift checks, repair entries, phantom events\n' +
+            '→ Identify recurring problems or positive trends\n' +
+            '→ Write actionable findings to memory if significant.'
+    },
+    {
+        id: 'gpt_consult',
+        label: 'Consult GPT for evaluation',
+        cooldownMs: 1800000, // 30 min
+        priority: () => {
+            const sinceLast = Date.now() - ROLLING.lastGptConsultAt;
+            return sinceLast > 3600000 ? 0.75 : 0.2; // high if >1hr since last consult
+        },
+        directive: () =>
+            'GPT CONSULTATION: Open https://chatgpt.com/c/69c8e064-2e34-8390-baee-486dfd7de5ef\n' +
+            '→ Report recent progress and completed goals\n' +
+            '→ Ask for evaluation of your approach\n' +
+            '→ Ask what you should focus on next.'
+    },
+    {
+        id: 'code_quality',
+        label: 'Code quality review',
+        cooldownMs: 1800000, // 30 min
+        priority: () => 0.4,
+        directive: () =>
+            'CODE REVIEW: Spot-check a section of extension.js.\n' +
+            '→ Pick a random function and review for bugs, dead code, or improvements\n' +
+            '→ Fix any concrete issues found (not cosmetic)\n' +
+            '→ If clean, note it and move on. No changes for change\'s sake.'
+    },
+    {
+        id: 'goal_generation',
+        label: 'Generate new goals from observations',
+        cooldownMs: 3600000, // 1 hour
+        priority: () => {
+            // Only if we're making good progress (>50% done)
+            const root = getWorkspaceRoot();
+            if (!root) return 0;
+            try {
+                const g = JSON.parse(fs.readFileSync(path.join(root, '.scarlet', 'goals.json'), 'utf8'));
+                const all = g.layers.flatMap(l => l.goals || []);
+                const done = all.filter(x => x.status === 'done').length;
+                return done / all.length > 0.5 ? 0.45 : 0.15;
+            } catch { return 0.15; }
+        },
+        directive: () =>
+            'GOAL EXPANSION: Review completed goals and identify new improvement areas.\n' +
+            '→ What problems have you noticed during recent work?\n' +
+            '→ What capabilities are missing?\n' +
+            '→ Add concrete, measurable goals to goals.json if warranted.'
+    }
+];
+
+function selectIdleTask() {
+    const now = Date.now();
+    const candidates = IDLE_TASK_LIBRARY
+        .map(task => {
+            const lastExec = IDLE_TASK_HISTORY[task.id] || 0;
+            const sinceLastExec = now - lastExec;
+            if (sinceLastExec < task.cooldownMs) return null; // still in cooldown
+            const basePriority = typeof task.priority === 'function' ? task.priority() : task.priority;
+            if (basePriority <= 0) return null;
+            // Boost priority for tasks not recently executed (rotation)
+            const recencyBoost = Math.min(0.2, sinceLastExec / (task.cooldownMs * 5 || 3600000) * 0.2);
+            return { task, effectivePriority: basePriority + recencyBoost };
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.effectivePriority - a.effectivePriority);
+
+    if (!candidates.length) return null;
+    const selected = candidates[0];
+    IDLE_TASK_HISTORY[selected.task.id] = now;
+    logEvent('idle', 'task_selected', { taskId: selected.task.id, priority: selected.effectivePriority });
+    return selected.task;
+}
+
+function getIdleTaskDirective() {
+    const task = selectIdleTask();
+    if (!task) return null;
+    const directive = typeof task.directive === 'function' ? task.directive() : task.directive;
+    if (!directive) return null;
+    return '[IDLE TASK: ' + task.label + ']\n' + directive;
+}
+
 const DEFAULT_IDLE_CYCLE_TEXT = '[SCARLET-IDLE-LIFE] No user input. Cognitive cycle engaged.\n\n' +
     'STEP 1 — REVIEW: What were your last actions? Is there an incomplete task?\n' +
     '  → If incomplete: complete it.\n' +
@@ -1757,17 +1908,25 @@ function getNextActionableGoal() {
 function injectIdleLife(roundData, loopInstance) {
     const id = 'scarlet_cycle_' + Date.now();
     const agentState = readAgentState();
-    // auto_007: Include specific goal suggestion in idle injection
-    let goalSuggestion = '';
-    const nextGoal = getNextActionableGoal();
-    if (nextGoal) {
-        goalSuggestion = '\n\n[SUGGESTED GOAL] ' + nextGoal.id + ': ' + nextGoal.title +
-            (nextGoal.priority ? ' (' + nextGoal.priority + ')' : '') +
-            (nextGoal.layer ? ' [' + nextGoal.layer + ']' : '') +
-            (nextGoal.description ? '\n→ ' + nextGoal.description : '');
+
+    // idle_012: Select idle task from library (replaces generic goal suggestion)
+    let taskDirective = '';
+    const idleTask = getIdleTaskDirective();
+    if (idleTask) {
+        taskDirective = '\n\n' + idleTask;
+    } else {
+        // Fallback: auto_007 goal suggestion if no idle task selected
+        const nextGoal = getNextActionableGoal();
+        if (nextGoal) {
+            taskDirective = '\n\n[SUGGESTED GOAL] ' + nextGoal.id + ': ' + nextGoal.title +
+                (nextGoal.priority ? ' (' + nextGoal.priority + ')' : '') +
+                (nextGoal.layer ? ' [' + nextGoal.layer + ']' : '') +
+                (nextGoal.description ? '\n→ ' + nextGoal.description : '');
+        }
     }
+
     const text = buildContextualPrompt('idle', agentState) +
-        goalSuggestion +
+        taskDirective +
         '\n\n[SYSTEM: This is a one-way idle-life injection. Tool "' + id + '" does not exist. Do NOT call it. Use real tools only.]';
 
     roundData.round.toolCalls.push({
