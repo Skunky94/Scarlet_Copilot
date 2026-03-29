@@ -824,6 +824,69 @@ suite('REST Control API (exp_007)', () => {
         assert.strictEqual(res.status, 404);
         await api.stop();
     });
+
+    test('computeAlerts returns empty when healthy', () => {
+        const api = T.getApi();
+        T.DRIFT.inRepair = false;
+        T.DRIFT.consecutiveBadWindows = 0;
+        T.PHANTOM.recentPhantomBurst = false;
+        T.ROLLING.productivityScore = 1.0;
+        T.ROLLING.roundsSinceVerification = 0;
+        T.ROLLING.roundsSinceLedgerUpdate = 0;
+        T.ROLLING.roundsSinceGptConsult = 0;
+        const alerts = api.computeAlerts();
+        assert.strictEqual(alerts.length, 0);
+    });
+
+    test('computeAlerts detects drift repair', () => {
+        const api = T.getApi();
+        T.DRIFT.inRepair = true;
+        T.DRIFT.repairRoundsElapsed = 5;
+        const alerts = api.computeAlerts();
+        const driftAlert = alerts.find(a => a.type === 'drift_repair');
+        assert.ok(driftAlert, 'should have drift_repair alert');
+        assert.strictEqual(driftAlert.severity, 'warning');
+        T.DRIFT.inRepair = false;
+    });
+
+    test('computeAlerts detects phantom burst', () => {
+        const api = T.getApi();
+        T.PHANTOM.recentPhantomBurst = true;
+        const alerts = api.computeAlerts();
+        const burstAlert = alerts.find(a => a.type === 'phantom_burst');
+        assert.ok(burstAlert, 'should have phantom_burst alert');
+        T.PHANTOM.recentPhantomBurst = false;
+    });
+
+    test('GET /alerts returns anomaly status with auth', async () => {
+        const api = T.getApi();
+        const port = await api.start(19884);
+        const token = api.getApiInfo().token;
+        T.DRIFT.inRepair = false;
+        T.PHANTOM.recentPhantomBurst = false;
+        T.ROLLING.productivityScore = 1.0;
+        T.ROLLING.roundsSinceVerification = 0;
+        T.ROLLING.roundsSinceLedgerUpdate = 0;
+        T.ROLLING.roundsSinceGptConsult = 0;
+        const res = await new Promise((resolve, reject) => {
+            const options = {
+                hostname: '127.0.0.1', port, path: '/alerts', method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + token }
+            };
+            const req = http.request(options, (resp) => {
+                let data = '';
+                resp.on('data', c => data += c);
+                resp.on('end', () => resolve({ status: resp.statusCode, body: JSON.parse(data) }));
+            });
+            req.on('error', reject);
+            req.end();
+        });
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.status, 'healthy');
+        assert.strictEqual(typeof res.body.alert_count, 'number');
+        assert.ok(Array.isArray(res.body.alerts));
+        await api.stop();
+    });
 });
 
 // ─── Summary ─────────────────────────────────────────────────────────────────

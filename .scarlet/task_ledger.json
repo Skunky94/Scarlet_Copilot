@@ -1,18 +1,14 @@
 {
-    "backlog_internal":  [
-
-                         ],
-    "notes":  "exp_001 COMPLETE. 11 modules in lib/. Committed f0fc93e. 47/58 goals.",
-    "last_verification":  "2026-03-30T00:05:39",
-    "current_task":  {
-                         "status":  "done",
-                         "title":  "Modularize Extension Monolith",
-                         "id":  "exp_001",
-                         "outcome":  "11 modules, 3645-\u003e1359 lines (-63%), 58/58 tests"
-                     },
-    "backlog_external":  [
-
-                         ],
-    "status":  "done",
-    "verified":  true
+  "backlog_internal": [],
+  "notes": "exp_007 COMPLETE. 12 modules in lib/. 45/54 goals (83%).",
+  "last_verification": "2026-03-29T22:27:12.101Z",
+  "current_task": {
+    "id": "exp_007",
+    "title": "REST Control API",
+    "status": "done",
+    "outcome": "lib/api.js, 6 endpoints, 11 tests, 69/69 green"
+  },
+  "backlog_external": [],
+  "status": "done",
+  "verified": true
 }

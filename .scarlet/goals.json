@@ -1,6 +1,6 @@
 {
   "schema_version": "3.0.0",
-  "last_updated": "2026-03-29T22:26:36.386Z",
+  "last_updated": "2026-03-29T22:29:59.511Z",
   "near_impossible_goal": "Autonomous persistent entity with eventual embodiment",
   "notes": "Goal graph v3. Co-designed with GPT. Focus: robustezza runtime, qualita semantica, modularizzazione, crescita autonoma.",
   "layers": [
@@ -906,7 +906,7 @@
           "title": "Runtime Health Interface",
           "description": "Interfaccia per monitoraggio salute runtime.",
           "priority": "P2",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             "exp_003",
             "exp_007"
@@ -916,7 +916,10 @@
             "Metriche esposte",
             "Alert su anomalie"
           ],
-          "notes": " Dependencies now satisfied."
+          "notes": "v2.12: Health check, full metrics exposure, anomaly alerting (drift, phantom, productivity, staleness, GPT consult).",
+          "completed_at": "2026-03-29T22:29:59.510Z",
+          "outcome": "GET /health, GET /metrics, GET /alerts with 7 anomaly detectors.",
+          "artifact": "lib/api.js /alerts endpoint + computeAlerts()"
         },
         {
           "id": "emb_legacy",
