@@ -1,16 +1,5 @@
 {
-  "current_task": {
-    "id": "exp_010",
-    "title": "Workspace-Safe Persistence Layer",
-    "started_at": "2026-03-29T19:34:07.306Z",
-    "steps": [
-      "audit-paths",
-      "add-storage-context",
-      "create-persistence-api",
-      "test",
-      "commit"
-    ]
-  },
+  "current_task": null,
   "completed_tasks": [
     {
       "id": "int_021",
@@ -161,12 +150,18 @@
       "title": "Replay Harness",
       "completed_at": "2026-03-29T19:33:55.129Z",
       "outcome": "exp_004 done"
+    },
+    {
+      "id": "exp_010",
+      "title": "Workspace-Safe Persistence Layer",
+      "completed_at": "2026-03-29T19:52:42.384Z",
+      "outcome": "exp_010 done"
     }
   ],
   "backlog_external": [],
   "backlog_internal": [],
   "stats": {
-    "total_completed": 48,
+    "total_completed": 49,
     "total_abandoned": 0
   }
 }
