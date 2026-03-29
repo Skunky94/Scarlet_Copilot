@@ -1799,6 +1799,15 @@ async function onLoopCheck(roundData, loopInstance) {
         const idleLifeEnabled = cfg('idleLife') !== false;
         const idleLifeDelay = cfg('idleLifeDelayMs') || 15000;
         const idleLifeInterval = cfg('idleLifeIntervalMs') || 300000;
+        const maxIdleMs = cfg('maxIdleTimeoutMs') || 600000; // surv_005: 10min max idle
+
+        // surv_005: Max idle timeout — prevent infinite opaque loop
+        if (Date.now() - idleStartTime > maxIdleMs) {
+            console.log('[LOOP-GUARDIAN] Max idle timeout (' + (maxIdleMs / 1000) + 's). Exiting idle loop.');
+            METRICS.state = 'Idle';
+            updatePanel();
+            return true; // allow termination
+        }
 
         const entry = readAndShiftBuffer();
         if (entry) {
@@ -1849,8 +1858,9 @@ async function onLoopCheck(roundData, loopInstance) {
             return true;
         }
 
-        if (Date.now() - lastHeartbeat > 300000) {
-            console.log('[LOOP-GUARDIAN] Still polling. Uptime: ' + getUptime() +
+        if (Date.now() - lastHeartbeat > 60000) {
+            const idleSec = Math.round((Date.now() - idleStartTime) / 1000);
+            console.log('[LOOP-GUARDIAN] Still polling. Idle for ' + idleSec + 's. Uptime: ' + getUptime() +
                 ', idle cycles: ' + METRICS.idleCycles);
             lastHeartbeat = Date.now();
             updatePanel();
