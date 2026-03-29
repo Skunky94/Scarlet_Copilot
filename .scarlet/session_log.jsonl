@@ -57,3 +57,11 @@
 {"ts":"2026-03-29T12:32:54.103Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
 {"ts":"2026-03-29T12:43:38.431Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
 {"ts":"2026-03-29T12:43:51.548Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-29T15:12:30.599Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-29T15:12:47.375Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-29T15:34:43.351Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-29T15:34:50.916Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-29T15:38:51.419Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-29T15:39:01.046Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-29T15:44:06.485Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-29T15:44:19.677Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}

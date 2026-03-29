@@ -175,6 +175,9 @@ const DRIFT = {
     stableStateRounds: 0,           // consecutive rounds with same effective_state
     stateOscillationCount: 0,       // count of effective_state flips in window
     lastEffectiveState: null,
+    // Browser workflow awareness (v2.12: cog_007)
+    browserWorkflowRounds: 0,       // rounds containing browser tools
+    gptConsultationRounds: 0,       // rounds with detected GPT consultation
     // Output
     consecutiveBadWindows: 0,
     BAD_WINDOWS_TRIGGER: 2,
@@ -283,7 +286,7 @@ function isPhantomDominantRound(callNames) {
     return phantom / callNames.length > 0.5;
 }
 
-function pushDriftRound({ toolCallNames, realToolCallNames, effectiveState, hadVerificationEvidence, ledgerSnapshot }) {
+function pushDriftRound({ toolCallNames, realToolCallNames, effectiveState, hadVerificationEvidence, ledgerSnapshot, hasBrowserTools, hasGptConsultation }) {
     DRIFT.roundsInWindow++;
 
     const phantomOnly = isPhantomOnlyRound(toolCallNames);
@@ -302,9 +305,19 @@ function pushDriftRound({ toolCallNames, realToolCallNames, effectiveState, hadV
 
     DRIFT.validRoundsInWindow++;
 
-    // Verification evidence
+    // Verification evidence — browser reads during GPT consultation count as verification (cog_007)
     if (hadVerificationEvidence) {
         DRIFT.verificationEvidenceRounds++;
+    }
+
+    // Browser workflow tracking (cog_007)
+    if (hasBrowserTools) {
+        DRIFT.browserWorkflowRounds++;
+    }
+    if (hasGptConsultation) {
+        DRIFT.gptConsultationRounds++;
+        // GPT consultation IS a progress event — reading GPT response = gathering info for task
+        DRIFT.progressEvents++;
     }
 
     // Depth
@@ -342,39 +355,51 @@ function computeQualityDrift() {
     const validRounds = Math.max(1, DRIFT.validRoundsInWindow);
     const realToolCalls = Math.max(1, DRIFT.totalRealToolCalls);
 
-    // 1. Verification Evidence Score (0.30)
+    // 1. Verification Evidence Score (0.25) — v2.12: reduced from 0.30 to make room for browser
     const verificationEvidenceScore = DRIFT.verificationEvidenceRounds / validRounds;
 
-    // 2. Progress Event Score (0.30) — discrete, not density-per-round
+    // 2. Progress Event Score (0.25) — v2.12: reduced from 0.30, GPT consult now counts as progress
     const progressEventScore =
         DRIFT.progressEvents >= 2 ? 1.0 :
         DRIFT.progressEvents === 1 ? 0.6 :
         0.0;
 
-    // 3. Depth Score (0.20)
+    // 3. Depth Score (0.20) — unchanged
     const depthScore = DRIFT.depthEvidenceCount / realToolCalls;
 
-    // 4. Stability Score (0.20) — penalize oscillation, reward coherence
+    // 4. Stability Score (0.15) — v2.12: reduced from 0.20
     const stabilityScore = Math.max(0,
         (DRIFT.stableStateRounds - DRIFT.stateOscillationCount) / validRounds
     );
+
+    // 5. Browser Workflow Score (0.15) — v2.12 NEW (cog_007)
+    // Recognizes browser-based work as legitimate productive activity.
+    // GPT consultation rounds get full credit, other browser rounds get partial.
+    const browserWorkflowScore =
+        DRIFT.gptConsultationRounds > 0 ? Math.min(1.0, (DRIFT.gptConsultationRounds * 1.5 + DRIFT.browserWorkflowRounds * 0.5) / validRounds) :
+        DRIFT.browserWorkflowRounds > 0 ? Math.min(1.0, DRIFT.browserWorkflowRounds * 0.7 / validRounds) :
+        0.0;
 
     const metrics = {
         verificationEvidenceScore,
         progressEventScore,
         depthScore,
         stabilityScore,
+        browserWorkflowScore,
+        browserWorkflowRounds: DRIFT.browserWorkflowRounds,
+        gptConsultationRounds: DRIFT.gptConsultationRounds,
         phantomOnlyRoundsWindow: PHANTOM.phantomOnlyRoundsWindow,
         phantomDominantRoundsWindow: PHANTOM.phantomDominantRoundsWindow,
         validRounds
     };
 
-    // Weighted score
+    // Weighted score — v2.12: rebalanced with browser workflow component
     const score =
-        verificationEvidenceScore * 0.30 +
-        progressEventScore * 0.30 +
+        verificationEvidenceScore * 0.25 +
+        progressEventScore * 0.25 +
         depthScore * 0.20 +
-        stabilityScore * 0.20;
+        stabilityScore * 0.15 +
+        browserWorkflowScore * 0.15;
 
     const shouldEnterRepair = score < DRIFT.SCORE_REPAIR_ENTER;
     const shouldExitRepair = score >= DRIFT.SCORE_REPAIR_EXIT;
@@ -415,6 +440,8 @@ function computeQualityDrift() {
     DRIFT.progressEvents = 0;
     DRIFT.stableStateRounds = 0;
     DRIFT.stateOscillationCount = 0;
+    DRIFT.browserWorkflowRounds = 0;
+    DRIFT.gptConsultationRounds = 0;
     DRIFT.lastDriftCheck = Date.now();
     DRIFT.lastEffectiveState = null;
     PHANTOM.phantomOnlyRoundsWindow = 0;
@@ -1651,14 +1678,20 @@ async function onLoopCheck(roundData, loopInstance) {
             ROLLING.roundsSinceVerification = 0;
         }
 
-        // ── Quality Drift (v2.11: semantic drift with phantom separation) ──
+        // ── Browser workflow detection for drift (v2.12: cog_007) ──
+        const hasBrowserTools = callNames.some(n => BROWSER_TOOLS.includes(n));
+        const hasGptConsultation = ROLLING.roundsSinceGptConsult === 0; // detected this round
+
+        // ── Quality Drift (v2.12: rebalanced with browser workflow awareness) ──
         const realCallNames = callNames.filter(n => !isPhantomToolCall(n));
         pushDriftRound({
             toolCallNames: callNames,
             realToolCallNames: realCallNames,
             effectiveState: resolved.effectiveState,
             hadVerificationEvidence,
-            ledgerSnapshot
+            ledgerSnapshot,
+            hasBrowserTools,
+            hasGptConsultation
         });
         const driftResult = computeQualityDrift();
         if (driftResult) {

@@ -12,7 +12,7 @@ Autore: Scarlet (auto-analisi)
 
 | Componente | File | Ruolo | Stato |
 |---|---|---|---|
-| Loop Guardian v1.10.0 | extension.js (~850 righe) | Cuore — mantiene il loop vivo, inietta messaggi, gestisce idle | Deployato, attivo |
+| Loop Guardian v2.12.0 | extension.js (~2078 righe) | Cuore — mantiene il loop vivo, inietta messaggi, gestisce idle, drift detection, nudge system, continuation gate, reflexion | Deployato, attivo |
 | Micro-patch Copilot Chat | ~31 modifiche in dist/extension.js (20MB) | 3 gate: bypass tool limit, bypass yield, onLoopCheck | Attivo post-patch |
 | Prompt DNA v2 | prompt-patches/block-01-role.txt | Identità, cognitive approach, idle life, bridge protocol | Iniettato nel system prompt |
 | Idle Cycle | .scarlet/idle-cycle.txt | 4-step cognitive cycle (testo iniettato come phantom tool result) | Caricato on-demand |
