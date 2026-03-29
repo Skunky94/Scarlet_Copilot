@@ -828,6 +828,7 @@ const META_TOOLS = ['memory', 'manage_todo_list', 'runSubagent'];
 const BROWSER_VERIFY_TOOLS = ['read_page', 'screenshot_page', 'fetch_webpage'];
 const BROWSER_EXECUTE_TOOLS = ['open_browser_page', 'navigate_page', 'click_element',
                                'type_in_page', 'hover_element', 'drag_element'];
+const BROWSER_TOOLS = [...BROWSER_VERIFY_TOOLS, ...BROWSER_EXECUTE_TOOLS];
 
 function classifyTerminalCommand(commandText) {
     const cmd = (commandText || '').toLowerCase();
