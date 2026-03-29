@@ -84,6 +84,17 @@ else { Write-Host "[HOOK3] SKIP: pattern non trovato" }
 
 Write-Host "Hooks applicati: $hookCount/3"
 
+# FAIL-HARD: all 3 hooks are critical
+if ($hookCount -lt 3) {
+    Write-Host "`n*** ABORT: Solo $hookCount/3 hooks critici trovati. Upstream Copilot Chat incompatibile. ***" -ForegroundColor Red
+    Write-Host "Il file target NON è stato modificato." -ForegroundColor Red
+    exit 2
+}
+
+if ($gateCount -lt 1) {
+    Write-Host "`n*** WARNING: Nessun gate trovato. Le iteration limits potrebbero non essere bypassate. ***" -ForegroundColor Yellow
+}
+
 # ═══════════════════════════════════════
 # PROMPT PATCHES
 # ═══════════════════════════════════════
@@ -192,11 +203,28 @@ foreach ($sp in $safetyPatches) {
 Write-Host "Safety applicati: $safetyCount"
 
 # ═══════════════════════════════════════
-# WRITE
+# WRITE + SYNTAX CHECK
 # ═══════════════════════════════════════
 [System.IO.File]::WriteAllText($Target, $c, [System.Text.UTF8Encoding]::new($false))
 $sz = (Get-Item $Target).Length
 Write-Host "`nFile scritto: $sz bytes"
+
+# Post-write syntax check
+Write-Host "Syntax check con node -c..."
+try {
+    $syntaxResult = & node -c $Target 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "*** SYNTAX ERROR DETECTED ***" -ForegroundColor Red
+        Write-Host $syntaxResult -ForegroundColor Red
+        Write-Host "Ripristino backup..." -ForegroundColor Yellow
+        Copy-Item $Backup $Target -Force
+        Write-Host "Backup ripristinato. Il file target è tornato allo stato originale." -ForegroundColor Yellow
+        exit 3
+    }
+    Write-Host "Syntax check OK" -ForegroundColor Green
+} catch {
+    Write-Host "*** WARNING: node non disponibile per syntax check ***" -ForegroundColor Yellow
+}
 
 # ═══════════════════════════════════════
 # VERIFY
