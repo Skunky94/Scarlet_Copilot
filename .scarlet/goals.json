@@ -1,6 +1,6 @@
 {
   "schema_version": "3.0.0",
-  "last_updated": "2026-03-29T18:50:14.370Z",
+  "last_updated": "2026-03-29T18:55:39.547Z",
   "near_impossible_goal": "Autonomous persistent entity with eventual embodiment",
   "notes": "Goal graph v3. Co-designed with GPT. Focus: robustezza runtime, qualita semantica, modularizzazione, crescita autonoma.",
   "layers": [
@@ -788,7 +788,7 @@
           "title": "Autonomy Failure Retrospective",
           "description": "Retrospettiva su fallimenti di autonomia.",
           "priority": "P1",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             "auto_008",
             "cog_011"
@@ -797,7 +797,9 @@
             "Root cause per ogni failure",
             "Pattern di failure documentati",
             "Mitigazioni implementate"
-          ]
+          ],
+          "artifact": "Autonomy failure logging + retrospective generator + failure taxonomy",
+          "notes": "v2.12: logEvent in requestReflection, generateAutonomyRetrospective(), failure-patterns.md, idle task."
         },
         {
           "id": "idle_011",
