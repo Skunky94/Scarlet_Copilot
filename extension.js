@@ -525,6 +525,61 @@ function hasPendingSteps() {
     };
 }
 
+// ─── auto_001: Semantic Promotion ────────────────────────────────────────────
+// When current task is done but backlog has items, the gate promotes the next
+// backlog item to current_task instead of just nudging. External items first.
+function promoteNextBacklogItem() {
+    const ledger = readTaskLedger();
+    if (!ledger) return null;
+
+    // Only promote if current task is done/completed or absent
+    if (ledger.current_task && ledger.current_task.status !== 'done' && ledger.current_task.status !== 'completed') {
+        return null;
+    }
+
+    const extBacklog = (ledger.backlog_external || []).filter(t => t.status !== 'done' && t.status !== 'completed');
+    const intBacklog = (ledger.backlog_internal || []).filter(t => t.status !== 'done' && t.status !== 'completed');
+    if (extBacklog.length === 0 && intBacklog.length === 0) return null;
+
+    // Pick next: external (user requests) first, then internal by position
+    const isExternal = extBacklog.length > 0;
+    const next = isExternal ? extBacklog[0] : intBacklog[0];
+
+    // Archive current task to completed_tasks
+    if (ledger.current_task && (ledger.current_task.status === 'done' || ledger.current_task.status === 'completed')) {
+        if (!ledger.completed_tasks) ledger.completed_tasks = [];
+        ledger.completed_tasks.push({
+            id: ledger.current_task.id,
+            title: ledger.current_task.title,
+            completed_at: new Date().toISOString(),
+            outcome: ledger.current_task.outcome || 'Completed (auto-archived by gate)'
+        });
+    }
+
+    // Promote backlog item to current_task
+    ledger.current_task = {
+        id: next.id,
+        title: next.title,
+        source: next.source || 'backlog-promotion',
+        priority: next.priority || 'P2',
+        status: 'active',
+        started_at: new Date().toISOString(),
+        steps: []  // LLM will plan these
+    };
+
+    // Remove promoted item from its backlog
+    if (isExternal) {
+        ledger.backlog_external = (ledger.backlog_external || []).filter(t => t.id !== next.id);
+    } else {
+        ledger.backlog_internal = (ledger.backlog_internal || []).filter(t => t.id !== next.id);
+    }
+
+    if (ledger.stats) ledger.stats.total_completed = (ledger.stats.total_completed || 0) + 1;
+    writeTaskLedger(ledger);
+    console.log('[LOOP-GUARDIAN] Gate promoted backlog item: ' + next.title);
+    return next;
+}
+
 function shouldFireContinuationGate() {
     const now = Date.now();
     // Exponential backoff: 10s, 20s, 40s, 80s, capped at 120s
@@ -545,7 +600,15 @@ function injectContinuationGate(roundData, loopInstance) {
     if (task && count > 0) {
         taskLine = 'Task: ' + task + '\nPending steps: ' + count + '\n';
     } else if (backlogCount > 0) {
-        taskLine = 'Current task complete, but backlog has ' + backlogCount + ' item(s).\nNext: ' + nextBacklogItem + '\n';
+        // auto_001: Semantic promotion — actually promote the next backlog item
+        const promoted = promoteNextBacklogItem();
+        if (promoted) {
+            taskLine = '[PROMOTED] "' + promoted.title + '" is now your current task.\n' +
+                'Priority: ' + (promoted.priority || 'P2') + '\n' +
+                'Plan your steps in task_ledger.json and begin immediately.\n';
+        } else {
+            taskLine = 'Backlog has ' + backlogCount + ' item(s) but promotion failed.\nNext: ' + nextBacklogItem + '\n';
+        }
     }
     const text = '[SCARLET-CONTINUATION-GATE] You emitted a response without tool calls, but work remains.\n\n' +
         taskLine + '\n' +
@@ -631,6 +694,14 @@ function readTaskLedger() {
     if (!root) return null;
     const p = path.join(root, '.scarlet', 'task_ledger.json');
     return readJsonSafe(p, null);
+}
+
+function writeTaskLedger(ledger) {
+    const root = getWorkspaceRoot();
+    if (!root) return false;
+    const p = path.join(root, '.scarlet', 'task_ledger.json');
+    writeJsonSafe(p, ledger);
+    return true;
 }
 
 function hasExternalBacklog() {
@@ -1566,12 +1637,18 @@ async function onLoopCheck(roundData, loopInstance) {
                 COMPULSIVE_LOOP.consecutivePhantomOnlyRounds = 0;
                 COMPULSIVE_LOOP.lastResetTime = Date.now();
 
-                // Force state to equilibrium
+                // Force state: equilibrium if no work, idle_active if backlog pending (auto_001)
                 const st = readAgentState();
                 st.previous_state = st.state;
-                st.state = 'equilibrium';
                 st.last_transition_at = new Date().toISOString();
-                st.last_transition_reason = 'compulsive_loop_hard_stop';
+                const { pending: hasWork } = hasPendingSteps();
+                if (hasWork) {
+                    st.state = 'idle_active';
+                    st.last_transition_reason = 'compulsive_loop_hard_stop_backlog_pending';
+                } else {
+                    st.state = 'equilibrium';
+                    st.last_transition_reason = 'compulsive_loop_hard_stop';
+                }
                 writeAgentState(st);
 
                 logRoundMetrics(roundData, 'compulsive-stop');
