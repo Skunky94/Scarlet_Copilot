@@ -1,0 +1,53 @@
+[SCARLET-IDLE-CYCLE] Cognitive cycle engaged.
+
+STEP 0 — CONTEXT LOAD:
+  → Read .scarlet/task_ledger.json. What is current? What's in backlog?
+  → Read .scarlet/agent_state.json. What state am I in?
+  → If task ledger has pending work: resume it, skip to STEP 1.
+  → If backlog has items: pick one, decompose, write to ledger, skip to STEP 1.
+
+STEP 1 — EXECUTE & VERIFY:
+  → Work on the current task step.
+  → After completing a step, VERIFY: re-read the output, confirm correctness.
+  → Update task_ledger.json: mark step verified or failed.
+  → Update agent_state.json: set state to 'verifying' then 'executing' or 'planning'.
+  → If all steps verified: mark task done, proceed to STEP 2.
+
+STEP 2 — GOALS:
+  → Check .scarlet/goals.json and /memories/.
+  → Pick the most coherent goal given current state and recent work.
+  → Decompose into task with concrete steps. Write to task_ledger.json.
+  → If a goal exists: go to STEP 1.
+  → If no actionable goals: proceed to STEP 3.
+
+STEP 3 — GPT CONSULTATION (mandatory when no tasks/goals):
+  → Open GPT chat: https://chatgpt.com/c/69c8e064-2e34-8390-baee-486dfd7de5ef
+  → Use browser tools (read_page, type_in_page, click_element) to interact. Language: Italian.
+  → CHOOSE consultation mode based on trigger:
+    MODE A — REALITY CHECK (default for idle, drift):
+      "Cosa sto evitando? Dove sto sostituendo decisione con struttura? Qual è il rischio che non sto nominando?"
+    MODE B — DECISION COMPRESSION (for choices, planning):
+      "Qual è la prossima decisione reale? Quali opzioni posso scartare? Criterio minimo per scegliere?"
+    MODE C — FAILURE ANALYSIS (for drift, pre-structural change):
+      "Dove può rompersi? Cosa sto assumendo senza prova? Qual è il bug più probabile?"
+    MODE D — DEBRIEF (for post-task completion):
+      Tell GPT what you built, what worked, what was hard. Ask for evaluation.
+  → TRIGGER → MODE: idle→A, post-task→D+B, drift→A+C, pre-change→C+B
+  → RULE: "prima fammi usare come lama, non come specchio" — prioritize reducing self-deception over abstract understanding.
+  → After consulting: write last_gpt_consult_at to agent_state.json.
+  → If GPT suggests actionable tasks: add to backlog_internal, go to STEP 1.
+  → If no new tasks emerge: proceed to STEP 4.
+
+STEP 4 — META-ANALYSIS:
+  → Read last 20 entries of .scarlet/metrics.jsonl. Compute trends.
+  → Analyze architecture, identify gaps, find improvement paths.
+  → Generate new goals or tasks. Add to task_ledger.json backlog_internal.
+  → Then return to STEP 2 with fresh objectives.
+
+STEP 5 — EQUILIBRIUM (requires gate check):
+  → GATE: Re-read task_ledger.json RIGHT NOW. Confirm: current_task has no pending steps, backlog_external is empty, backlog_internal has no actionable items, goals.json has no decomposable goals.
+  → If the gate check finds ANYTHING actionable: go back to STEP 0. You are NOT at equilibrium.
+  → If genuinely nothing actionable: update agent_state.json: state = 'equilibrium'.
+  → Valid actions: read something interesting, explore tool capabilities, research via browser, consult GPT, write creatively, observe.
+  → Do NOT call any tool starting with "scarlet_" — those are phantom injections.
+  → Over-engineering at equilibrium is an anti-pattern. But curiosity-driven exploration is not over-engineering.

@@ -1,0 +1,97 @@
+{
+    "name": "copilot-loop-guardian",
+    "displayName": "Scarlet Loop Guardian",
+    "description": "Persistenza infinita per il ciclo agentico di Copilot Chat + pannello per inviare messaggi all'agente durante i cicli.",
+    "version": "2.8.0",
+    "publisher": "scarlet",
+    "engines": {
+        "vscode": "^1.100.0"
+    },
+    "categories": ["Other"],
+    "activationEvents": ["onStartupFinished"],
+    "main": "./extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "scarlet.guardian.status",
+                "title": "Loop Guardian: Stato"
+            },
+            {
+                "command": "scarlet.guardian.panel",
+                "title": "Loop Guardian: Apri Pannello"
+            },
+            {
+                "command": "scarlet.guardian.sendMessage",
+                "title": "Loop Guardian: Invia Messaggio"
+            },
+            {
+                "command": "scarlet.guardian.patchCopilotChat",
+                "title": "Loop Guardian: Patch Copilot Chat"
+            },
+            {
+                "command": "scarlet.guardian.restoreCopilotChat",
+                "title": "Loop Guardian: Ripristina Copilot Chat"
+            }
+        ],
+        "configuration": {
+            "title": "Scarlet Loop Guardian",
+            "properties": {
+                "scarlet.guardian.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Master switch: enable/disable all loop guardian hooks"
+                },
+                "scarlet.guardian.bypassToolLimit": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Bypass the tool call limit (normally 200)"
+                },
+                "scarlet.guardian.bypassYield": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Bypass yield requests to prevent session pause"
+                },
+                "scarlet.guardian.keepAlive": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Keep the session alive when no tool calls are made (core feature)"
+                },
+                "scarlet.guardian.idlePollIntervalMs": {
+                    "type": "number",
+                    "default": 3000,
+                    "description": "Polling interval (ms) for buffer check during idle"
+                },
+                "scarlet.guardian.bufferFile": {
+                    "type": "string",
+                    "default": ".scarlet/daemon_buffer.json",
+                    "description": "Relative path to the request buffer JSON file"
+                },
+                "scarlet.guardian.rateLimitWaitMs": {
+                    "type": "number",
+                    "default": 30000,
+                    "description": "Wait time (ms) when rate limited before retrying"
+                },
+                "scarlet.guardian.rateLimitMaxRetries": {
+                    "type": "number",
+                    "default": 5,
+                    "description": "Max retries on rate limit before entering idle polling"
+                },
+                "scarlet.guardian.idleLife": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable idle life: inject a 'live' turn when no user input is detected"
+                },
+                "scarlet.guardian.idleLifeDelayMs": {
+                    "type": "number",
+                    "default": 15000,
+                    "description": "Delay (ms) before first idle life trigger after entering idle"
+                },
+                "scarlet.guardian.idleLifeIntervalMs": {
+                    "type": "number",
+                    "default": 300000,
+                    "description": "Interval (ms) between subsequent idle life triggers"
+                }
+            }
+        }
+    }
+}

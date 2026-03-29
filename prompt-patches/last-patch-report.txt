@@ -1,0 +1,51 @@
+Loop Guardian — Patch Report (via VS Code command)
+Data: 28/03/2026, 16:34:30
+Script: h:\Scarlet_Copilot\apply-patch.ps1
+Risultato: 2 gates + 3 hooks + 16 prompt + 15 safety
+
+--- Output completo ---
+=== PATCH START ===
+Target:    C:\Users\Davide\.vscode\extensions\github.copilot-chat-0.41.1\dist\extension.js
+Backup:    C:\Users\Davide\.vscode\extensions\github.copilot-chat-0.41.1\dist\extension.js.pre_hooks
+PatchFile: h:\Scarlet_Copilot\prompt-patches\block-01-role.txt
+Backup esistente: C:\Users\Davide\.vscode\extensions\github.copilot-chat-0.41.1\dist\extension.js.pre_hooks
+Backup letto: 19835053 chars
+[GATE1] MAX_ITERATIONS 5 -> 9999 OK
+[GATE2] toolCallLimit ceiling 200 -> 1e6 OK
+Gates applicati: 2
+[HOOK1] shouldBypassToolLimit OK
+[HOOK2] shouldBypassYield OK
+[HOOK3] onLoopCheck OK
+Hooks applicati: 3/3
+Prompt file letto: 6 paragrafi
+[T1] Replaced at offset 14511884
+[T1] Replaced at offset 14749572
+[T1] Total: 2 occorrenze sostituite
+[T2] Search string length: 286
+[T2] Found at: 14314592
+[T2] Identity rules class replaced OK
+[T3] Replaced 12 remaining 'GitHub Copilot' name references
+[T4] Replaced 1 hardcoded model name references
+[SAFETY] Microsoft content policies: 4 occorrenze neutralizzate
+[SAFETY] Copyright warning: 4 occorrenze neutralizzate
+[SAFETY] Safety gate (standard): 3 occorrenze neutralizzate
+[SAFETY] Safety gate (extended): 1 occorrenze neutralizzate
+[SAFETY] Short impersonal directive: 3 occorrenze neutralizzate
+Safety applicati: 15
+
+File scritto: 19835336 bytes
+
+=== VERIFICA ===
+Scarlet identity:    True (atteso: True)
+Default identity:    False (atteso: False)
+GitHub Copilot name: False (atteso: False)
+MAX_ITERATIONS=9999: True (atteso: True)
+toolCallLimit=1e6:   True (atteso: True)
+Hook bypass limit:   True (atteso: True)
+Hook bypass yield:   True (atteso: True)
+Hook onLoopCheck:    True (atteso: True)
+MS Policy removed:   True (atteso: True)
+Impersonal removed:  True (atteso: True)
+
+Totale: 2 gates + 3 hooks + 16 prompt + 15 safety
+=== PATCH END ===

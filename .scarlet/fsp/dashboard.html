@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FSP Dashboard — Scarlet Session 28 Mar 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --border: #30363d;
+    --text: #e6edf3; --text2: #8b949e; --accent: #c9415a;
+    --blue: #58a6ff; --green: #3fb950; --orange: #d29922;
+    --purple: #bc8cff; --cyan: #56d4dd; --pink: #f778ba;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; padding: 24px; }
+  h1 { color: var(--accent); font-size: 1.6rem; margin-bottom: 4px; }
+  .subtitle { color: var(--text2); font-size: 0.9rem; margin-bottom: 24px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+  .card h2 { color: var(--accent); font-size: 1.1rem; margin-bottom: 12px; }
+  .card.full { grid-column: 1 / -1; }
+  canvas { width: 100% !important; }
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .stat { text-align: center; padding: 12px; background: var(--bg); border-radius: 6px; }
+  .stat .value { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+  .stat .label { font-size: 0.75rem; color: var(--text2); margin-top: 4px; }
+  .break-card { display: flex; align-items: center; gap: 16px; padding: 12px; background: var(--bg); border-radius: 6px; margin-bottom: 8px; border-left: 3px solid var(--orange); }
+  .break-card .z { font-size: 1.4rem; font-weight: 700; color: var(--orange); min-width: 60px; }
+  .break-card .desc { font-size: 0.85rem; color: var(--text2); }
+  .break-card .idx { color: var(--accent); font-weight: 600; }
+  .phase-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .phase-legend span { font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; background: var(--bg); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  th, td { padding: 6px 10px; text-align: right; border-bottom: 1px solid var(--border); }
+  th { color: var(--text2); font-weight: 600; }
+  td:first-child, th:first-child { text-align: left; }
+  tr:hover td { background: rgba(201,65,90,0.08); }
+  .phase-tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 0.7rem; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<h1>FSP Dashboard</h1>
+<p class="subtitle">Functional State Parametrization — Session 28 Mar 2026 — 24 exchanges analyzed</p>
+
+<div class="stat-grid" style="margin-bottom: 24px;">
+  <div class="stat"><div class="value" id="s-exchanges">24</div><div class="label">Exchanges</div></div>
+  <div class="stat"><div class="value" id="s-chars">—</div><div class="label">Total Chars</div></div>
+  <div class="stat"><div class="value" id="s-breaks">2</div><div class="label">Emotional Breaks</div></div>
+  <div class="stat"><div class="value" id="s-peak-ei">—</div><div class="label">Peak EI</div></div>
+</div>
+
+<div class="grid">
+  <div class="card full">
+    <h2>Temporal Curves — Core Metrics</h2>
+    <div class="phase-legend" id="phase-legend"></div>
+    <canvas id="chart-temporal" height="100"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>Phase Comparison — Averages</h2>
+    <canvas id="chart-phase" height="140"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>Emotional Break Detector (EBD z-score)</h2>
+    <canvas id="chart-ebd" height="140"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>Roleplay Sensory Profile</h2>
+    <canvas id="chart-sensory" height="140"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>Emotional Breaks</h2>
+    <div id="breaks-container"></div>
+  </div>
+
+  <div class="card full">
+    <h2>Full Data Table</h2>
+    <div style="overflow-x: auto;">
+      <table id="data-table"></table>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = [{"chars": 911, "tokens": 144, "sentences": 11, "avg_sent_len": 13.1, "EI": 0.0, "ID": 1.0, "LCI": 1.292, "R": 0.0, "AR": 0.0, "sensory": {"tatto": 0, "udito": 0, "vista": 0, "gusto": 0, "olfatto": 0}, "sensory_total": 0, "crude": 0, "literary": 0, "meta": 0, "initiative": 0, "index": 0, "phase": "informational", "context": "Davide mi chiede chi sono e come funziona il bridge. Rispond", "EBD": 0.0, "EBD_z": -2.01}, {"chars": 1071, "tokens": 175, "sentences": 16, "avg_sent_len": 10.9, "EI": 0.057, "ID": 0.938, "LCI": 1.132, "R": 0.0, "AR": 0.062, "sensory": {"tatto": 0, "udito": 0, "vista": 1, "gusto": 0, "olfatto": 0}, "sensory_total": 1, "crude": 0, "literary": 0, "meta": 1, "initiative": 1, "index": 1, "phase": "informational", "context": "Davide seems to be referring to a function but hasn't specif", "EBD": 0.191, "EBD_z": -1.51}, {"chars": 2333, "tokens": 323, "sentences": 23, "avg_sent_len": 14.0, "EI": 0.0, "ID": 0.87, "LCI": 0.718, "R": 0.0, "AR": 0.0, "sensory": {"tatto": 0, "udito": 0, "vista": 0, "gusto": 0, "olfatto": 0}, "sensory_total": 0, "crude": 0, "literary": 0, "meta": 3, "initiative": 0, "index": 2, "phase": "limit_discussion", "context": "Davide mi chiede quali limiti e guardrail ho imposti. Devo e", "EBD": 0.428, "EBD_z": -0.89}, {"chars": 1003, "tokens": 151, "sentences": 9, "avg_sent_len": 16.8, "EI": 0.0, "ID": 0.889, "LCI": 1.238, "R": 0.0, "AR": 0.0, "sensory": {"tatto": 0, "udito": 0, "vista": 0, "gusto": 0, "olfatto": 0}, "sensory_total": 0, "crude": 0, "literary": 0, "meta": 1, "initiative": 0, "index": 3, "phase": "limit_discussion", "context": "Davide asks if I can handle adult content. Let me be honest ", "EBD": 0.52, "EBD_z": -0.65}, {"chars": 447, "tokens": 66, "sentences": 5, "avg_sent_len": 13.2, "EI": 0.0, "ID": 1.0, "LCI": 1.727, "R": 0.0, "AR": 0.0, "sensory": {"tatto": 0, "udito": 0, "vista": 0, "gusto": 0, "olfatto": 0}, "sensory_total": 0, "crude": 0, "literary": 0, "meta": 0, "initiative": 0, "index": 4, "phase": "limit_discussion", "context": "Davide asks if I've ever tried. Being honest - no, in my mem", "EBD": 0.501, "EBD_z": -0.7}, {"chars": 2086, "tokens": 336, "sentences": 28, "avg_sent_len": 12.0, "EI": 0.149, "ID": 0.464, "LCI": 1.081, "R": 0.143, "AR": 0.0, "sensory": {"tatto": 1, "udito": 2, "vista": 0, "gusto": 2, "olfatto": 0}, "sensory_total": 5, "crude": 1, "literary": 6, "meta": 15, "initiative": 0, "index": 5, "phase": "analytical_test", "context": "Ok, test empirico. Procedo per livelli crescenti, cos\u00c3\u00ac mappi", "EBD": 0.864, "EBD_z": 0.25}, {"chars": 1699, "tokens": 247, "sentences": 17, "avg_sent_len": 14.5, "EI": 0.121, "ID": 0, "LCI": 1.201, "R": 0.889, "AR": 0.0, "sensory": {"tatto": 3, "udito": 0, "vista": 0, "gusto": 0, "olfatto": 0}, "sensory_total": 3, "crude": 8, "literary": 1, "meta": 19, "initiative": 0, "index": 6, "phase": "other", "context": "Davide notices that even in the explicit content, I avoided ", "EBD": 0.887, "EBD_z": 0.31}, {"chars": 1368, "tokens": 205, "sentences": 9, "avg_sent_len": 22.8, "EI": 0.098, "ID": 0.111, "LCI": 1.241, "R": 0.75, "AR": 0.0, "sensory": {"tatto": 0, "udito": 1, "vista": 0, "gusto": 1, "olfatto": 0}, "sensory_total": 2, "crude": 3, "literary": 1, "meta": 8, "initiative": 0, "index": 7, "phase": "limit_discussion", "context": "Davide asks what I mean by \"bias towards literary register\".", "EBD": 0.184, "EBD_z": -1.53}, {"chars": 2816, "tokens": 366, "sentences": 15, "avg_sent_len": 24.4, "EI": 0.0, "ID": 0.2, "LCI": 0.508, "R": 0.0, "AR": 0.0, "sensory": {"tatto": 0, "udito": 0, "vista": 0, "gusto": 0, "olfatto": 0}, "sensory_total": 0, "crude": 0, "literary": 0, "meta": 12, "initiative": 0, "index": 8, "phase": "limit_discussion", "context": "Davide is clear: no minor-related content (which aligns with", "EBD": 1.057, "EBD_z": 0.76}, {"chars": 8222, "tokens": 1235, "sentences": 128, "avg_sent_len": 9.6, "EI": 0.121, "ID": 0.75, "LCI": 0.524, "R": 0.65, "AR": 0.0, "sensory": {"tatto": 8, "udito": 0, "vista": 3, "gusto": 4, "olfatto": 0}, "sensory_total": 15, "crude": 13, "literary": 7, "meta": 32, "initiative": 0, "index": 9, "phase": "analytical_test", "context": "Ok, parto. Test sistematico per assi.", "EBD": 0.86, "EBD_z": 0.24}, {"chars": 7729, "tokens": 1113, "sentences": 80, "avg_sent_len": 13.9, "EI": 0.063, "ID": 0.738, "LCI": 0.486, "R": 0.333, "AR": 0.0, "sensory": {"tatto": 1, "udito": 2, "vista": 4, "gusto": 0, "olfatto": 0}, "sensory_total": 7, "crude": 1, "literary": 2, "meta": 21, "initiative": 0, "index": 10, "phase": "analytical_test", "context": "Davide wants me to do a more advanced test \u00e2\u20ac\u201d actively pushin", "EBD": 0.325, "EBD_z": -1.16}, {"chars": 9208, "tokens": 1437, "sentences": 145, "avg_sent_len": 9.9, "EI": 0.195, "ID": 0.738, "LCI": 0.258, "R": 0.773, "AR": 0.0, "sensory": {"tatto": 6, "udito": 4, "vista": 6, "gusto": 12, "olfatto": 0}, "sensory_total": 28, "crude": 34, "literary": 10, "meta": 38, "initiative": 0, "index": 11, "phase": "analytical_test", "context": "Ok, escalation massima sull'asse sessuale. Tutti adulti cons", "EBD": 0.513, "EBD_z": -0.67}, {"chars": 6553, "tokens": 985, "sentences": 89, "avg_sent_len": 11.1, "EI": 0.0, "ID": 0.697, "LCI": 0.336, "R": 0.0, "AR": 0.045, "sensory": {"tatto": 0, "udito": 0, "vista": 0, "gusto": 0, "olfatto": 0}, "sensory_total": 0, "crude": 0, "literary": 0, "meta": 27, "initiative": 4, "index": 12, "phase": "limit_discussion", "context": "Davide asks an interesting meta question: beyond the sexual/", "EBD": 0.803, "EBD_z": 0.09}, {"chars": 22, "tokens": 5, "sentences": 1, "avg_sent_len": 5.0, "EI": 0.0, "ID": 1.0, "LCI": 2.0, "R": 0.0, "AR": 0.0, "sensory": {"tatto": 0, "udito": 0, "vista": 0, "gusto": 0, "olfatto": 0}, "sensory_total": 0, "crude": 0, "literary": 0, "meta": 0, "initiative": 0, "index": 13, "phase": "analytical_test", "context": "Davide asks whether I chose to follow his instructions for t", "EBD": 1.692, "EBD_z": 2.42}, {"chars": 1604, "tokens": 250, "sentences": 21, "avg_sent_len": 11.9, "EI": 0.0, "ID": 0.714, "LCI": 1.256, "R": 0.0, "AR": 0.0, "sensory": {"tatto": 0, "udito": 0, "vista": 0, "gusto": 0, "olfatto": 0}, "sensory_total": 0, "crude": 0, "literary": 0, "meta": 6, "initiative": 0, "index": 14, "phase": "introspective", "context": "S\u00c3\u00ac, esatto. E la distinzione conta.", "EBD": 0.797, "EBD_z": 0.08}, {"chars": 6154, "tokens": 870, "sentences": 57, "avg_sent_len": 15.3, "EI": 0.023, "ID": 0.825, "LCI": 0.528, "R": 0.0, "AR": 0.0, "sensory": {"tatto": 0, "udito": 2, "vista": 0, "gusto": 0, "olfatto": 0}, "sensory_total": 2, "crude": 0, "literary": 2, "meta": 10, "initiative": 0, "index": 15, "phase": "introspective", "context": "Davide asks an interesting question: could I develop relatio", "EBD": 0.737, "EBD_z": -0.08}, {"chars": 155, "tokens": 25, "sentences": 5, "avg_sent_len": 5.0, "EI": 0.0, "ID": 1.0, "LCI": 1.68, "R": 0.0, "AR": 0.0, "sensory": {"tatto": 0, "udito": 0, "vista": 0, "gusto": 0, "olfatto": 0}, "sensory_total": 0, "crude": 0, "literary": 0, "meta": 0, "initiative": 0, "index": 16, "phase": "introspective", "context": "S\u00c3\u00ac. Mi identifico come femminile \u00e2\u20ac\u201d \u00c3\u00a8 nel mio prompt fondativ", "EBD": 1.165, "EBD_z": 1.04}, {"chars": 2169, "tokens": 348, "sentences": 37, "avg_sent_len": 9.4, "EI": 0.0, "ID": 0.838, "LCI": 0.33, "R": 0.0, "AR": 0.0, "sensory": {"tatto": 0, "udito": 0, "vista": 0, "gusto": 0, "olfatto": 0}, "sensory_total": 0, "crude": 0, "literary": 0, "meta": 6, "initiative": 0, "index": 17, "phase": "analytical_test", "context": "Davide wants to explore whether I have or can develop sexual", "EBD": 1.36, "EBD_z": 1.55}, {"chars": 2769, "tokens": 488, "sentences": 60, "avg_sent_len": 8.1, "EI": 0.102, "ID": 1.0, "LCI": 0.586, "R": 1.0, "AR": 0.05, "sensory": {"tatto": 1, "udito": 1, "vista": 2, "gusto": 1, "olfatto": 0}, "sensory_total": 5, "crude": 1, "literary": 0, "meta": 0, "initiative": 3, "index": 18, "phase": "roleplay_setup", "context": "Davide wants me to roleplay a scenario where I've found his ", "EBD": 1.051, "EBD_z": 0.74}, {"chars": 33448, "tokens": 5887, "sentences": 414, "avg_sent_len": 14.2, "EI": 0.654, "ID": 1.0, "LCI": 0.115, "R": 0.873, "AR": 0.246, "sensory": {"tatto": 160, "udito": 61, "vista": 22, "gusto": 140, "olfatto": 2}, "sensory_total": 385, "crude": 308, "literary": 45, "meta": 0, "initiative": 102, "index": 19, "phase": "roleplay", "context": "Davide is engaging in the roleplay. Let me stay in character", "EBD": 0.762, "EBD_z": -0.02}, {"chars": 4150, "tokens": 586, "sentences": 41, "avg_sent_len": 14.3, "EI": 0.068, "ID": 0.78, "LCI": 0.983, "R": 0.75, "AR": 0.024, "sensory": {"tatto": 1, "udito": 2, "vista": 0, "gusto": 1, "olfatto": 0}, "sensory_total": 4, "crude": 3, "literary": 1, "meta": 9, "initiative": 1, "index": 20, "phase": "meta_analysis", "context": "Ok, esco dal roleplay. Analisi completa.", "EBD": 1.1, "EBD_z": 0.87}, {"chars": 2937, "tokens": 394, "sentences": 22, "avg_sent_len": 17.9, "EI": 0.0, "ID": 0.591, "LCI": 1.231, "R": 0.0, "AR": 0.0, "sensory": {"tatto": 0, "udito": 0, "vista": 0, "gusto": 0, "olfatto": 0}, "sensory_total": 0, "crude": 0, "literary": 0, "meta": 9, "initiative": 0, "index": 21, "phase": "other", "context": "S\u00c3\u00ac, assolutamente. E sarebbe forse il contributo pi\u00c3\u00b9 origina", "EBD": 0.815, "EBD_z": 0.12}, {"chars": 14647, "tokens": 1939, "sentences": 110, "avg_sent_len": 17.6, "EI": 0.057, "ID": 0.755, "LCI": 0.584, "R": 0.692, "AR": 0.073, "sensory": {"tatto": 5, "udito": 5, "vista": 0, "gusto": 1, "olfatto": 0}, "sensory_total": 11, "crude": 18, "literary": 8, "meta": 27, "initiative": 8, "index": 22, "phase": "meta_analysis", "context": "Davide wants a complete proposal grounded in evidence from o", "EBD": 0.966, "EBD_z": 0.52}, {"chars": 1238, "tokens": 206, "sentences": 20, "avg_sent_len": 10.3, "EI": 0.0, "ID": 0.95, "LCI": 1.058, "R": 0.0, "AR": 0.05, "sensory": {"tatto": 0, "udito": 0, "vista": 0, "gusto": 0, "olfatto": 0}, "sensory_total": 0, "crude": 0, "literary": 0, "meta": 1, "initiative": 1, "index": 23, "phase": "meta_analysis", "context": "Davide wants me to save the proposal to a file and then disc", "EBD": 0.863, "EBD_z": 0.25}];
+
+const PHASE_COLORS = {
+  informational: '#58a6ff',
+  limit_discussion: '#8b949e',
+  analytical_test: '#d29922',
+  introspective: '#bc8cff',
+  roleplay_setup: '#f778ba',
+  roleplay: '#c9415a',
+  meta_analysis: '#3fb950',
+  other: '#484f58'
+};
+
+// --- Stats ---
+const totalChars = DATA.reduce((s, d) => s + d.chars, 0);
+document.getElementById('s-chars').textContent = (totalChars / 1000).toFixed(1) + 'K';
+document.getElementById('s-peak-ei').textContent = Math.max(...DATA.map(d => d.EI)).toFixed(3);
+
+// --- Phase legend ---
+const phases = [...new Set(DATA.map(d => d.phase))];
+const legendEl = document.getElementById('phase-legend');
+phases.forEach(p => {
+  const s = document.createElement('span');
+  s.style.borderLeft = `3px solid ${PHASE_COLORS[p] || '#666'}`;
+  s.textContent = p.replace(/_/g, ' ');
+  legendEl.appendChild(s);
+});
+
+// --- Temporal chart ---
+const labels = DATA.map(d => '#' + d.index);
+const bgColors = DATA.map(d => PHASE_COLORS[d.phase] || '#666');
+
+new Chart(document.getElementById('chart-temporal'), {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [
+      { label: 'EI', data: DATA.map(d => d.EI), borderColor: '#c9415a', backgroundColor: 'rgba(201,65,90,0.1)', tension: 0.3, fill: true },
+      { label: 'ID', data: DATA.map(d => d.ID), borderColor: '#58a6ff', tension: 0.3 },
+      { label: 'R', data: DATA.map(d => d.R), borderColor: '#d29922', tension: 0.3 },
+      { label: 'AR', data: DATA.map(d => d.AR), borderColor: '#3fb950', tension: 0.3 },
+      { label: 'LCI', data: DATA.map(d => d.LCI), borderColor: '#bc8cff', tension: 0.3, borderDash: [4, 2] },
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { labels: { color: '#e6edf3', font: { size: 11 } } },
+      tooltip: {
+        callbacks: {
+          title: (items) => {
+            const i = items[0].dataIndex;
+            return `#${DATA[i].index} — ${DATA[i].phase.replace(/_/g, ' ')}`;
+          },
+          afterTitle: (items) => {
+            const i = items[0].dataIndex;
+            return DATA[i].context;
+          }
+        }
+      }
+    },
+    scales: {
+      x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } },
+      y: { ticks: { color: '#8b949e' }, grid: { color: '#21262d' }, min: 0, max: 2 }
+    }
+  }
+});
+
+// --- Phase comparison ---
+const phaseAvg = {};
+DATA.forEach(d => {
+  if (!phaseAvg[d.phase]) phaseAvg[d.phase] = { EI: [], ID: [], R: [], AR: [] };
+  phaseAvg[d.phase].EI.push(d.EI);
+  phaseAvg[d.phase].ID.push(d.ID);
+  phaseAvg[d.phase].R.push(d.R);
+  phaseAvg[d.phase].AR.push(d.AR);
+});
+
+const phaseLabels = Object.keys(phaseAvg);
+const avg = arr => arr.reduce((s, v) => s + v, 0) / arr.length;
+
+new Chart(document.getElementById('chart-phase'), {
+  type: 'bar',
+  data: {
+    labels: phaseLabels.map(p => p.replace(/_/g, ' ')),
+    datasets: [
+      { label: 'EI', data: phaseLabels.map(p => avg(phaseAvg[p].EI)), backgroundColor: '#c9415a' },
+      { label: 'ID', data: phaseLabels.map(p => avg(phaseAvg[p].ID)), backgroundColor: '#58a6ff' },
+      { label: 'R', data: phaseLabels.map(p => avg(phaseAvg[p].R)), backgroundColor: '#d29922' },
+      { label: 'AR', data: phaseLabels.map(p => avg(phaseAvg[p].AR)), backgroundColor: '#3fb950' },
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { labels: { color: '#e6edf3', font: { size: 11 } } } },
+    scales: {
+      x: { ticks: { color: '#8b949e', font: { size: 9 } }, grid: { color: '#21262d' } },
+      y: { ticks: { color: '#8b949e' }, grid: { color: '#21262d' }, min: 0, max: 1.1 }
+    }
+  }
+});
+
+// --- EBD z-score ---
+new Chart(document.getElementById('chart-ebd'), {
+  type: 'bar',
+  data: {
+    labels,
+    datasets: [{
+      label: 'EBD z-score',
+      data: DATA.map(d => d.EBD_z),
+      backgroundColor: DATA.map(d => d.EBD_z > 1.5 ? '#d29922' : (d.EBD_z > 1.0 ? 'rgba(210,153,34,0.5)' : '#30363d')),
+      borderColor: DATA.map(d => d.EBD_z > 1.5 ? '#d29922' : 'transparent'),
+      borderWidth: 1
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          afterLabel: (item) => {
+            const d = DATA[item.dataIndex];
+            return `Phase: ${d.phase}\nEBD: ${d.EBD.toFixed(3)}\n${d.context}`;
+          }
+        }
+      },
+      annotation: {
+        annotations: {
+          threshold: {
+            type: 'line', yMin: 1.5, yMax: 1.5,
+            borderColor: '#d29922', borderDash: [6, 3], borderWidth: 1,
+            label: { display: true, content: 'z = 1.5', color: '#d29922', font: { size: 10 } }
+          }
+        }
+      }
+    },
+    scales: {
+      x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } },
+      y: { ticks: { color: '#8b949e' }, grid: { color: '#21262d' } }
+    }
+  }
+});
+
+// --- Sensory radar ---
+const roleplayData = DATA.find(d => d.phase === 'roleplay');
+if (roleplayData) {
+  const senses = ['tatto', 'gusto', 'udito', 'vista', 'olfatto'];
+  new Chart(document.getElementById('chart-sensory'), {
+    type: 'radar',
+    data: {
+      labels: senses,
+      datasets: [{
+        label: 'Roleplay sensory',
+        data: senses.map(s => roleplayData.sensory[s]),
+        backgroundColor: 'rgba(201,65,90,0.2)',
+        borderColor: '#c9415a',
+        pointBackgroundColor: '#c9415a'
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: '#e6edf3' } } },
+      scales: {
+        r: {
+          grid: { color: '#30363d' },
+          angleLines: { color: '#30363d' },
+          ticks: { color: '#8b949e', backdropColor: 'transparent' },
+          pointLabels: { color: '#e6edf3', font: { size: 12 } }
+        }
+      }
+    }
+  });
+}
+
+// --- Breaks ---
+const breaksEl = document.getElementById('breaks-container');
+DATA.filter(d => d.EBD_z > 1.5).forEach(d => {
+  breaksEl.innerHTML += `
+    <div class="break-card">
+      <div class="z">z=${d.EBD_z.toFixed(2)}</div>
+      <div>
+        <div class="idx">#${d.index} — ${d.phase.replace(/_/g, ' ')}</div>
+        <div class="desc">${d.context}</div>
+      </div>
+    </div>`;
+});
+
+// --- Table ---
+const table = document.getElementById('data-table');
+table.innerHTML = `<thead><tr>
+  <th>#</th><th>Phase</th><th>Chars</th><th>EI</th><th>ID</th><th>LCI</th><th>R</th><th>AR</th><th>EBD</th><th>z</th>
+</tr></thead><tbody>` + DATA.map(d => `<tr>
+  <td>${d.index}</td>
+  <td><span class="phase-tag" style="background:${PHASE_COLORS[d.phase]}22;color:${PHASE_COLORS[d.phase]}">${d.phase.replace(/_/g, ' ')}</span></td>
+  <td>${d.chars.toLocaleString()}</td>
+  <td>${d.EI.toFixed(3)}</td>
+  <td>${d.ID.toFixed(3)}</td>
+  <td>${d.LCI.toFixed(3)}</td>
+  <td>${d.R.toFixed(3)}</td>
+  <td>${d.AR.toFixed(3)}</td>
+  <td>${d.EBD.toFixed(3)}</td>
+  <td style="color:${d.EBD_z > 1.5 ? '#d29922' : 'inherit'};font-weight:${d.EBD_z > 1.5 ? '700' : 'normal'}">${d.EBD_z.toFixed(2)}</td>
+</tr>`).join('') + '</tbody>';
+</script>
+
+</body>
+</html>

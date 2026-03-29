@@ -1,0 +1,27 @@
+﻿{
+  "current_task": {
+    "id": "int_016",
+    "title": "Update goals.json with v2.8-v2.9 achievements",
+    "status": "done",
+    "started_at": "2026-03-29T16:55:00Z",
+    "completed_at": "2026-03-29T17:00:00Z"
+  },
+  "completed_tasks": [
+    {"id": "int_016", "title": "Update goals.json", "completed_at": "2026-03-29T17:00:00Z", "outcome": "Added L2-06 (GPT consultation), L2-07 (Decision Collapse), L2-08 (knowledge acquisition), L2-09 (Reflexion placeholder), L3-06 (Git). Updated L3 to in-progress."},
+    {"id": "int_015", "title": "Documentation exploration + research synthesis", "completed_at": "2026-03-29T16:55:00Z", "outcome": "Explored VS Code APIs + Lilian Weng survey. GPT > local LLM. Consolidate before building more."},
+    {"id": "int_014", "title": "Deep GPT calibration + Decision Collapse", "completed_at": "2026-03-29T16:15:00Z", "outcome": "GPT technical context sent. Decision Collapse v2.9.0 deployed."},
+    {"id": "int_012", "title": "Fix GPT review remaining bugs", "completed_at": "2026-03-29T14:55:00Z", "outcome": "v2.7.0 deployed."},
+    {"id": "int_011", "title": "Fix GPT code review bugs", "completed_at": "2026-03-29T12:32:00Z", "outcome": "v2.6.0 deployed."},
+    {"id": "int_010", "title": "Explore expanded capabilities", "completed_at": "2026-03-29T12:18:00Z", "outcome": "Capability map saved."},
+    {"id": "int_009", "title": "Fix autonomy passivity", "completed_at": "2026-03-29T12:12:00Z", "outcome": "Prompt DNA v4."},
+    {"id": "int_007", "title": "Align version strings", "completed_at": "2026-03-29T14:47:00Z", "outcome": "v2.7.0 aligned."},
+    {"id": "int_006", "title": "Continuation gate v2.3.0", "completed_at": "2026-03-29T11:02:00Z", "outcome": "deployed."},
+    {"id": "ext_mandate_001", "title": "10-phase mandate", "completed_at": "2026-03-29T04:25:00Z", "outcome": "done."}
+  ],
+  "backlog_external": [],
+  "backlog_internal": [
+    {"id": "int_017", "title": "Observe v2.9.0 Decision Collapse in action", "priority": "high", "blocked_by": "VS Code reload"},
+    {"id": "int_018", "title": "Git init workspace", "priority": "low"}
+  ],
+  "stats": {"total_completed": 14, "total_abandoned": 0}
+}

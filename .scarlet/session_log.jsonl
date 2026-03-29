@@ -1,0 +1,59 @@
+{"ts":"2026-03-28T12:02:53.494Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-28T12:48:28.896Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-28T12:48:38.918Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-28T12:53:55.060Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-28T12:54:04.733Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-28T12:54:06.094Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-28T12:54:16.409Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-28T14:01:30.822Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-28T14:01:48.224Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-28T14:13:30.159Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-28T14:13:44.003Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-28T14:26:21.654Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-28T14:26:35.979Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-28T14:28:56.012Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-28T14:29:08.446Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-28T14:46:39.375Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-28T14:46:55.112Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-28T14:57:26.445Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-28T14:57:39.804Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-28T15:04:55.376Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-28T15:05:08.845Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-28T15:16:27.567Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-28T15:16:41.483Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-28T15:20:35.357Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-28T15:20:49.430Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-28T15:22:47.273Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-28T15:22:55.488Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-28T15:33:45.393Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-28T15:33:59.509Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-28T15:39:51.900Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-28T15:40:03.623Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-28T18:15:28.661Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-28T21:45:36.168Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-28T23:18:18.454Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-28T23:18:29.417Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-28T23:26:00.474Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-28T23:26:11.175Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-28T23:51:05.379Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-28T23:51:18.100Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-29T08:07:10.730Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-29T08:07:27.530Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-29T09:08:05.564Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-29T09:08:20.938Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-29T09:26:45.493Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-29T09:26:59.708Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-29T10:40:21.824Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-29T10:40:35.778Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-29T10:53:39.447Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-29T10:53:48.811Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-29T10:57:54.705Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-29T10:58:08.086Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-29T11:29:54.844Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-29T11:30:09.147Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-29T11:59:54.438Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-29T12:00:07.714Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-29T12:32:40.624Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-29T12:32:54.103Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
+{"ts":"2026-03-29T12:43:38.431Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 deactivated"}
+{"ts":"2026-03-29T12:43:51.548Z","cat":"bridge","src":"bridge","msg":"Bridge v0.5.0 activated (minimal mode)","data":{"scheduler":"DISABLED","eventWatcher":"DISABLED","webhook":"DISABLED","healthCheck":"DISABLED","clockInjection":"ON","fullIdleContext":"DISABLED","autoTriggers":"DISABLED"}}
