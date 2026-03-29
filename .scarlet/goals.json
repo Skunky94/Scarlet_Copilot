@@ -884,7 +884,7 @@
           "title": "Cross-Process Memory Gateway",
           "description": "Gateway per accedere alla memoria da processi esterni.",
           "priority": "P2",
-          "status": "blocked",
+          "status": "pending",
           "dependencies": [
             "exp_010",
             "exp_003"
@@ -893,7 +893,8 @@
             "API per read/write memory",
             "Autenticazione",
             "Concurrency safe"
-          ]
+          ],
+          "notes": "Dependencies (exp_010, exp_003) now satisfied. Unblocked."
         },
         {
           "id": "emb_003",

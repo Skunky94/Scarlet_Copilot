@@ -35,6 +35,10 @@
             {
                 "command": "scarlet.guardian.restoreCopilotChat",
                 "title": "Loop Guardian: Ripristina Copilot Chat"
+            },
+            {
+                "command": "scarlet.guardian.apiInfo",
+                "title": "Loop Guardian: API Info"
             }
         ],
         "configuration": {

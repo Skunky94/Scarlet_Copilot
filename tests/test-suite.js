@@ -636,6 +636,196 @@ suite('Metrics Dashboard', () => {
     });
 });
 
+suite('REST Control API (exp_007)', () => {
+    const http = require('http');
+
+    test('POLICY.api has required keys', () => {
+        assert.strictEqual(typeof T.POLICY.api, 'object');
+        assert.strictEqual(typeof T.POLICY.api.enabled, 'boolean');
+        assert.strictEqual(typeof T.POLICY.api.defaultPort, 'number');
+        assert.ok(T.POLICY.api.defaultPort > 1024, 'port should be unprivileged');
+    });
+
+    test('getApi returns object with expected methods', () => {
+        const api = T.getApi();
+        assert.strictEqual(typeof api.start, 'function');
+        assert.strictEqual(typeof api.stop, 'function');
+        assert.strictEqual(typeof api.getApiInfo, 'function');
+        assert.strictEqual(typeof api.checkAuth, 'function');
+        assert.strictEqual(typeof api.handleRequest, 'function');
+    });
+
+    test('getApiInfo returns not-running before start', () => {
+        const info = T.getApiInfo();
+        assert.strictEqual(info.running, false);
+        assert.strictEqual(info.port, null);
+    });
+
+    test('API server starts and stops', async () => {
+        const api = T.getApi();
+        const port = await api.start(19876);
+        assert.strictEqual(typeof port, 'number');
+        assert.ok(port >= 19876);
+        const info = api.getApiInfo();
+        assert.strictEqual(info.running, true);
+        assert.strictEqual(info.port, port);
+        assert.ok(info.token.length >= 32);
+        await api.stop();
+        const info2 = api.getApiInfo();
+        assert.strictEqual(info2.running, false);
+    });
+
+    test('GET /health returns 200 without auth', async () => {
+        const api = T.getApi();
+        const port = await api.start(19877);
+        const res = await new Promise((resolve, reject) => {
+            http.get('http://127.0.0.1:' + port + '/health', (resp) => {
+                let data = '';
+                resp.on('data', c => data += c);
+                resp.on('end', () => resolve({ status: resp.statusCode, body: JSON.parse(data) }));
+            }).on('error', reject);
+        });
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.status, 'ok');
+        assert.ok(res.body.version);
+        assert.ok(res.body.uptime);
+        await api.stop();
+    });
+
+    test('GET /status returns 401 without token', async () => {
+        const api = T.getApi();
+        const port = await api.start(19878);
+        const res = await new Promise((resolve, reject) => {
+            http.get('http://127.0.0.1:' + port + '/status', (resp) => {
+                let data = '';
+                resp.on('data', c => data += c);
+                resp.on('end', () => resolve({ status: resp.statusCode, body: JSON.parse(data) }));
+            }).on('error', reject);
+        });
+        assert.strictEqual(res.status, 401);
+        await api.stop();
+    });
+
+    test('GET /status returns 200 with valid token', async () => {
+        const api = T.getApi();
+        const port = await api.start(19879);
+        const token = api.getApiInfo().token;
+        const res = await new Promise((resolve, reject) => {
+            const options = {
+                hostname: '127.0.0.1', port, path: '/status', method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + token }
+            };
+            const req = http.request(options, (resp) => {
+                let data = '';
+                resp.on('data', c => data += c);
+                resp.on('end', () => resolve({ status: resp.statusCode, body: JSON.parse(data) }));
+            });
+            req.on('error', reject);
+            req.end();
+        });
+        assert.strictEqual(res.status, 200);
+        assert.ok(res.body.version);
+        assert.ok(res.body.agent_state);
+        assert.ok(res.body.state_model);
+        await api.stop();
+    });
+
+    test('GET /metrics returns detailed metrics with auth', async () => {
+        const api = T.getApi();
+        const port = await api.start(19880);
+        const token = api.getApiInfo().token;
+        const res = await new Promise((resolve, reject) => {
+            const options = {
+                hostname: '127.0.0.1', port, path: '/metrics', method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + token }
+            };
+            const req = http.request(options, (resp) => {
+                let data = '';
+                resp.on('data', c => data += c);
+                resp.on('end', () => resolve({ status: resp.statusCode, body: JSON.parse(data) }));
+            });
+            req.on('error', reject);
+            req.end();
+        });
+        assert.strictEqual(res.status, 200);
+        assert.ok(res.body.runtime);
+        assert.ok(res.body.rolling);
+        assert.ok(res.body.drift);
+        assert.ok(res.body.phantom);
+        assert.ok(res.body.verification);
+        await api.stop();
+    });
+
+    test('GET /goals returns goals summary with auth', async () => {
+        const api = T.getApi();
+        const port = await api.start(19881);
+        const token = api.getApiInfo().token;
+        const res = await new Promise((resolve, reject) => {
+            const options = {
+                hostname: '127.0.0.1', port, path: '/goals', method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + token }
+            };
+            const req = http.request(options, (resp) => {
+                let data = '';
+                resp.on('data', c => data += c);
+                resp.on('end', () => resolve({ status: resp.statusCode, body: JSON.parse(data) }));
+            });
+            req.on('error', reject);
+            req.end();
+        });
+        assert.strictEqual(res.status, 200);
+        assert.ok(res.body.summary);
+        assert.ok(res.body.layers);
+        await api.stop();
+    });
+
+    test('POST /message queues buffer message with auth', async () => {
+        const api = T.getApi();
+        const port = await api.start(19882);
+        const token = api.getApiInfo().token;
+        const beforeCount = T.METRICS.messagesDelivered;
+        const res = await new Promise((resolve, reject) => {
+            const body = JSON.stringify({ text: 'test API message' });
+            const options = {
+                hostname: '127.0.0.1', port, path: '/message', method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+            };
+            const req = http.request(options, (resp) => {
+                let data = '';
+                resp.on('data', c => data += c);
+                resp.on('end', () => resolve({ status: resp.statusCode, body: JSON.parse(data) }));
+            });
+            req.on('error', reject);
+            req.write(body);
+            req.end();
+        });
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.ok, true);
+        await api.stop();
+    });
+
+    test('GET /nonexistent returns 404', async () => {
+        const api = T.getApi();
+        const port = await api.start(19883);
+        const token = api.getApiInfo().token;
+        const res = await new Promise((resolve, reject) => {
+            const options = {
+                hostname: '127.0.0.1', port, path: '/nonexistent', method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + token }
+            };
+            const req = http.request(options, (resp) => {
+                let data = '';
+                resp.on('data', c => data += c);
+                resp.on('end', () => resolve({ status: resp.statusCode }));
+            });
+            req.on('error', reject);
+            req.end();
+        });
+        assert.strictEqual(res.status, 404);
+        await api.stop();
+    });
+});
+
 // ─── Summary ─────────────────────────────────────────────────────────────────
 
 console.log('\n' + '─'.repeat(50));

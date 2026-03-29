@@ -87,6 +87,11 @@ const POLICY = {
         burstThreshold: 3,           // consecutive phantom-only rounds to declare burst
         windowInvalidRatio: 0.7,     // if >70% of window rounds are phantom-only â†’ skip repair decision
         minValidRoundsForRepair: 3   // minimum valid rounds needed to trust drift score for repair
+    },
+    // exp_007: REST Control API
+    api: {
+        enabled: true,               // set false to disable API server
+        defaultPort: 17532           // port to bind (auto-increments if in use)
     }
 };
 
@@ -592,6 +597,20 @@ function addToBuffer(t) { return getBuffer().addToBuffer(t); }
 function getBufferCount() { return getBuffer().getBufferCount(); }
 function extractMessage(e) { return getBuffer().extractMessage(e); }
 function injectMessage(rd, li, msg) { return getBuffer().injectMessage(rd, li, msg); }
+
+// ─── REST Control API (lazy-loaded from lib/api.js, exp_007) ────────────────
+let _api = null;
+function getApi() {
+    if (!_api) _api = require('./lib/api')({
+        METRICS, ROLLING, DRIFT, PHANTOM, STATE_MODEL, VERIFICATION, POLICY,
+        VERSION, getUptime, readAgentState, readTaskLedger,
+        loadRecentReflections, buildMetricsLine,
+        addToBuffer, getBufferCount,
+        scarletPath, fs
+    });
+    return _api;
+}
+
 function shouldBypassToolLimit(_request) {
     if (!cfg('enabled')) return false;
     return cfg('bypassToolLimit') === true;
@@ -1302,8 +1321,30 @@ function activate(context) {
             updatePanel();
         }),
         vscode.commands.registerCommand('scarlet.guardian.patchCopilotChat', patchCopilotChat),
-        vscode.commands.registerCommand('scarlet.guardian.restoreCopilotChat', restoreCopilotChat)
+        vscode.commands.registerCommand('scarlet.guardian.restoreCopilotChat', restoreCopilotChat),
+        // exp_007: API info command
+        vscode.commands.registerCommand('scarlet.guardian.apiInfo', () => {
+            const info = getApi().getApiInfo();
+            if (info.running) {
+                vscode.window.showInformationMessage(
+                    'API: http://127.0.0.1:' + info.port + ' | Token: ' + info.token.slice(0, 8) + '...'
+                );
+            } else {
+                vscode.window.showWarningMessage('API server not running');
+            }
+        })
     );
+
+    // exp_007: Start REST API server
+    if (POLICY.api.enabled) {
+        getApi().start(POLICY.api.defaultPort).then(port => {
+            console.log('[LOOP-GUARDIAN] API server started on port ' + port);
+            logEvent('api', 'started', { port });
+        }).catch(err => {
+            console.warn('[LOOP-GUARDIAN] API server failed to start: ' + err.message);
+            logEvent('api', 'start_failed', { error: err.message });
+        });
+    }
 
     console.log('[LOOP-GUARDIAN] ' + VERSION + ' Active | bypassToolLimit=' +
         cfg('bypassToolLimit') + ' bypassYield=' + cfg('bypassYield') +
@@ -1313,6 +1354,10 @@ function activate(context) {
 }
 
 function deactivate() {
+    // exp_007: Stop API server
+    if (_api) {
+        _api.stop().catch(() => {});
+    }
     console.log('[LOOP-GUARDIAN] ' + VERSION + ' Deactivated.');
 }
 
@@ -1354,6 +1399,9 @@ if (process.env.SCARLET_TEST) {
             STATE_MODEL.declared = 'idle_active'; STATE_MODEL.inferred = 'idle_active';
             STATE_MODEL.effective = 'idle_active'; STATE_MODEL.confidence = 0.0;
             STATE_MODEL.inferredConsistency = 0; STATE_MODEL.declaredStateAt = 0;
-        }
+        },
+        // exp_007: API test helpers
+        getApi,
+        getApiInfo: () => getApi().getApiInfo()
     };
 }
