@@ -1,6 +1,6 @@
 {
   "schema_version": "3.0.0",
-  "last_updated": "2026-03-29T19:15:28.949Z",
+  "last_updated": "2026-03-29T19:19:24.774Z",
   "near_impossible_goal": "Autonomous persistent entity with eventual embodiment",
   "notes": "Goal graph v3. Co-designed with GPT. Focus: robustezza runtime, qualita semantica, modularizzazione, crescita autonoma.",
   "layers": [
@@ -701,13 +701,15 @@
           "title": "Prompt DNA Review Cycle",
           "description": "Review periodica del prompt system per compressione e miglioramento.",
           "priority": "P1",
-          "status": "active",
+          "status": "done",
           "dependencies": [],
           "completion_criteria": [
             "Review almeno 1x per release",
             "Compressione ridondanze",
             "Coerenza con architettura"
-          ]
+          ],
+          "artifact": "prompt-dna-review.md + prompt_dna_review idle task",
+          "notes": "v2.12: Full coherence review, all 13 sections aligned. No changes needed."
         },
         {
           "id": "idle_005",
