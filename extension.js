@@ -99,7 +99,11 @@ const REFLEXION = {
     pendingReflection: null,     // {trigger, context} — set by failure detectors, consumed by shouldNudge
     lastReflectionMtime: 0,      // mtime of reflections.jsonl — to detect when LLM writes one
     MAX_REFLECTIONS_IN_PROMPT: 3, // how many recent reflections to embed in prompts
-    REFLECTION_FILE: 'reflections.jsonl'
+    REFLECTION_FILE: 'reflections.jsonl',
+    // cog_011: counters for high phantom ratio trigger
+    consecutiveHighPhantomRounds: 0,
+    HIGH_PHANTOM_THRESHOLD: 0.5,
+    HIGH_PHANTOM_ROUNDS_TRIGGER: 4
 };
 
 function getReflectionsPath() {
@@ -241,6 +245,14 @@ function advanceVerificationProtocol(toolCalls) {
 
     // Expire old signals
     if (VERIFICATION.level >= 1 && (now - VERIFICATION.lastSignalAt) > VERIFICATION.SIGNAL_TIMEOUT_MS) {
+        // cog_011: verification_timeout reflexion trigger
+        if (!REFLEXION.pendingReflection) {
+            requestReflection('verification_timeout', {
+                signalType: VERIFICATION.lastSignalType,
+                elapsedMs: now - VERIFICATION.lastSignalAt
+            });
+            logEvent('reflexion', 'trigger_verification_timeout', { signalType: VERIFICATION.lastSignalType });
+        }
         VERIFICATION.level = 0;
         VERIFICATION.lastSignalType = null;
     }
@@ -1319,9 +1331,16 @@ function shouldMetaNudge(agentState, ledger, operationalNudge, rolling) {
         }
     }
 
-    // Reflection first, but only if no active operational instability
-    if (!candidate && REFLEXION.pendingReflection && noCurrentTask) {
-        candidate = 'reflect';
+    // Reflection: prioritize if no current task, or allow after 5 rounds pending (cog_011)
+    if (!candidate && REFLEXION.pendingReflection) {
+        if (noCurrentTask) {
+            candidate = 'reflect';
+        } else if (REFLEXION.pendingReflection.requestedAt) {
+            const roundsPending = Math.floor((Date.now() - REFLEXION.pendingReflection.requestedAt) / 5000);
+            if (roundsPending >= 5) {
+                candidate = 'reflect';
+            }
+        }
     }
 
     // GPT debrief only when task just completed and GPT not consulted recently
@@ -1764,6 +1783,20 @@ async function onLoopCheck(roundData, loopInstance) {
             const newStatus = ledger.current_task.status;
             if (newId !== ROLLING.lastKnownTaskId || newStatus !== ROLLING.lastKnownTaskStatus) {
                 isDecision = true;
+                // cog_011: detect task abandonment — old task changed without completion
+                if (newId !== ROLLING.lastKnownTaskId && ROLLING.lastKnownTaskId
+                    && ROLLING.lastKnownTaskStatus !== 'done' && ROLLING.lastKnownTaskStatus !== 'completed'
+                    && !REFLEXION.pendingReflection) {
+                    requestReflection('task_abandoned', {
+                        abandonedTask: ROLLING.lastKnownTaskId,
+                        oldStatus: ROLLING.lastKnownTaskStatus,
+                        newTask: newId
+                    });
+                    logEvent('reflexion', 'trigger_task_abandoned', {
+                        abandonedTask: ROLLING.lastKnownTaskId,
+                        newTask: newId
+                    });
+                }
             }
             ROLLING.lastKnownTaskId = newId;
             ROLLING.lastKnownTaskStatus = newStatus;
@@ -1848,6 +1881,15 @@ async function onLoopCheck(roundData, loopInstance) {
         // v2.11: Repair escape valve — auto-exit after REPAIR_MAX_ROUNDS
         if (DRIFT.inRepair) {
             DRIFT.repairRoundsElapsed++;
+            // cog_011: prolonged_repair reflexion trigger — if stuck in repair for 10+ rounds
+            if (DRIFT.repairRoundsElapsed === 10 && !REFLEXION.pendingReflection) {
+                requestReflection('prolonged_repair', {
+                    roundsInRepair: DRIFT.repairRoundsElapsed,
+                    productivity: ROLLING.productivityScore,
+                    driftScore: driftResult ? driftResult.score : null
+                });
+                logEvent('reflexion', 'trigger_prolonged_repair', { rounds: DRIFT.repairRoundsElapsed });
+            }
             if (DRIFT.repairRoundsElapsed >= DRIFT.REPAIR_MAX_ROUNDS) {
                 const partialScore = driftResult ? driftResult.score : 0;
                 exitRepairState(partialScore >= DRIFT.SCORE_REPAIR_ENTER
@@ -1939,6 +1981,26 @@ async function onLoopCheck(roundData, loopInstance) {
             // Real tool calls — reset compulsive counter
             COMPULSIVE_LOOP.consecutivePhantomOnlyRounds = 0;
             CONTINUATION_GATE.consecutiveFires = 0; // real work → reset gate
+        }
+
+        // cog_011: high phantom ratio trigger — persistent mixed phantom/real rounds
+        if (ROLLING.phantomRatioAvg > REFLEXION.HIGH_PHANTOM_THRESHOLD && !allPhantom) {
+            REFLEXION.consecutiveHighPhantomRounds++;
+            if (REFLEXION.consecutiveHighPhantomRounds >= REFLEXION.HIGH_PHANTOM_ROUNDS_TRIGGER
+                && !REFLEXION.pendingReflection) {
+                requestReflection('high_phantom_ratio', {
+                    phantomRatio: ROLLING.phantomRatioAvg,
+                    consecutiveRounds: REFLEXION.consecutiveHighPhantomRounds,
+                    productivity: ROLLING.productivityScore
+                });
+                logEvent('reflexion', 'trigger_high_phantom_ratio', {
+                    ratio: ROLLING.phantomRatioAvg,
+                    rounds: REFLEXION.consecutiveHighPhantomRounds
+                });
+                REFLEXION.consecutiveHighPhantomRounds = 0;
+            }
+        } else {
+            REFLEXION.consecutiveHighPhantomRounds = 0;
         }
 
         // ── Nudge injection (v2.5: skip if already injected this round) ──
