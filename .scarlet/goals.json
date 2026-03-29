@@ -1,6 +1,6 @@
 {
   "schema_version": "3.0.0",
-  "last_updated": "2026-03-29T18:22:10.192Z",
+  "last_updated": "2026-03-29T18:31:26.884Z",
   "near_impossible_goal": "Autonomous persistent entity with eventual embodiment",
   "notes": "Goal graph v3. Co-designed with GPT. Focus: robustezza runtime, qualita semantica, modularizzazione, crescita autonoma.",
   "layers": [
@@ -402,7 +402,7 @@
           "title": "Idle Without Theater",
           "description": "Ridurre comportamento idle performativo. Azioni genuine, non teatro.",
           "priority": "P1",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             "cog_008",
             "auto_003"
@@ -411,7 +411,9 @@
             "Idle actions validate come genuine",
             "No operazioni ripetitive senza scopo",
             "Metriche idle quality"
-          ]
+          ],
+          "artifact": "Anti-theater idle cycle + quality tracking",
+          "notes": "v2.12: Rewrote idle cycle text with 5 anti-theater rules. Added idle quality event logging."
         },
         {
           "id": "auto_006",
