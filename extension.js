@@ -1,4 +1,4 @@
-// Scarlet Loop Guardian v2.12.0
+﻿// Scarlet Loop Guardian v2.12.0
 // Exports 3 hooks consumed by micro-patches in Copilot Chat's extension.js:
 //   shouldBypassToolLimit, shouldBypassYield, onLoopCheck
 //
@@ -15,13 +15,13 @@ const path = require('path');
 
 const VERSION = 'v2.12.0'; // single source of truth for runtime version
 
-// ─── Configuration ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Configuration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function cfg(key) {
     return vscode.workspace.getConfiguration('scarlet.guardian').get(key);
 }
 
-// ─── Centralized Policy Config (exp_002) ─────────────────────────────────────
+// â”€â”€â”€ Centralized Policy Config (exp_002) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Single source of truth for all tunable thresholds, weights, and intervals.
 // Subsystem objects reference POLICY.* instead of embedding magic numbers.
 
@@ -85,19 +85,19 @@ const POLICY = {
     // surv_002: Phantom boundary stabilization
     phantom: {
         burstThreshold: 3,           // consecutive phantom-only rounds to declare burst
-        windowInvalidRatio: 0.7,     // if >70% of window rounds are phantom-only → skip repair decision
+        windowInvalidRatio: 0.7,     // if >70% of window rounds are phantom-only â†’ skip repair decision
         minValidRoundsForRepair: 3   // minimum valid rounds needed to trust drift score for repair
     }
 };
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function getWorkspaceRoot() {
     const folders = vscode.workspace.workspaceFolders;
     return folders && folders.length ? folders[0].uri.fsPath : null;
 }
 
-// ─── Workspace-Safe Persistence (exp_010) ────────────────────────────────────
+// â”€â”€â”€ Workspace-Safe Persistence (exp_010) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Centralizes all .scarlet/ path resolution. Defaults to workspace root.
 // Can be redirected to context.globalStorageUri via initStorage() in activate().
 
@@ -145,7 +145,7 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// ─── Metrics (in-memory) ────────────────────────────────────────────────────
+// â”€â”€â”€ Metrics (in-memory) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const METRICS = {
     activatedAt: null,
@@ -164,7 +164,7 @@ const METRICS = {
     goalsCompleted: 0    // goals marked done this session
 };
 
-// ─── Rolling Metrics (runtime feedback) ──────────────────────────────────────
+// â”€â”€â”€ Rolling Metrics (runtime feedback) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const ROLLING = {
     lastRounds: [],              // circular buffer, max 10 entries
@@ -201,15 +201,15 @@ function pushRollingRound(toolCalls, phantomCalls) {
     ROLLING.phantomRatioAvg = totalTools > 0 ? totalPhantom / totalTools : 0;
 }
 
-// ─── Reflexion System (v2.10.0) ──────────────────────────────────────────────
+// â”€â”€â”€ Reflexion System (v2.10.0) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Implements Shinn 2023 Reflexion pattern: after failure/drift events, extract
 // a natural language lesson and store it. Future prompts include recent reflections
 // so the agent learns from its own mistakes across sessions.
 // Storage: .scarlet/reflections.jsonl (one JSON object per line)
 
 const REFLEXION = {
-    pendingReflection: null,     // {trigger, context} — set by failure detectors, consumed by shouldNudge
-    lastReflectionMtime: 0,      // mtime of reflections.jsonl — to detect when LLM writes one
+    pendingReflection: null,     // {trigger, context} â€” set by failure detectors, consumed by shouldNudge
+    lastReflectionMtime: 0,      // mtime of reflections.jsonl â€” to detect when LLM writes one
     MAX_REFLECTIONS_IN_PROMPT: POLICY.reflexion.maxInPrompt,
     REFLECTION_FILE: 'reflections.jsonl',
     // cog_011: counters for high phantom ratio trigger
@@ -240,7 +240,7 @@ function loadRecentReflections(n) {
 function formatReflectionsForPrompt() {
     const recent = loadRecentReflections(REFLEXION.MAX_REFLECTIONS_IN_PROMPT);
     if (recent.length === 0) return '';
-    let text = '\n[REFLECTIONS — lessons from past failures]\n';
+    let text = '\n[REFLECTIONS â€” lessons from past failures]\n';
     for (const r of recent) {
         text += '- [' + (r.trigger || '?') + '] ' + (r.lesson || r.cause_hypothesis || 'no lesson recorded') + '\n';
     }
@@ -271,7 +271,7 @@ function checkReflectionWritten() {
     return false;
 }
 
-// ─── Quality Drift Detector (v2.11.0) ────────────────────────────────────────
+// â”€â”€â”€ Quality Drift Detector (v2.11.0) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Measures behavioral quality over rolling windows. Forces "repair" state when
 // drift is detected. v2.11: replaces closureRatio with progressEventScore,
 // separates phantom rounds, adds stability metric.
@@ -308,8 +308,8 @@ const DRIFT = {
     REPAIR_NUDGE_INTERVAL: POLICY.drift.repairNudgeInterval
 };
 
-// ─── Phantom Tracker (v2.11.0) ───────────────────────────────────────────────
-// Separate failure class — phantom rounds no longer contaminate drift metrics.
+// â”€â”€â”€ Phantom Tracker (v2.11.0) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Separate failure class â€” phantom rounds no longer contaminate drift metrics.
 
 const PHANTOM = {
     phantomOnlyRoundsWindow: 0,
@@ -322,7 +322,7 @@ const PHANTOM = {
     MIN_VALID_FOR_REPAIR: POLICY.phantom.minValidRoundsForRepair
 };
 
-// ─── State Confidence Model (v2.11.0) ────────────────────────────────────────
+// â”€â”€â”€ State Confidence Model (v2.11.0) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Replaces time-based grace period with confidence scoring.
 
 const STATE_MODEL = {
@@ -335,8 +335,8 @@ const STATE_MODEL = {
     lastEffectiveChangeAt: 0
 };
 
-// ─── Verification Evidence Protocol (v2.12: cog_010) ─────────────────────────
-// Three-level verification tracking: Signal → Evidence → Completion.
+// â”€â”€â”€ Verification Evidence Protocol (v2.12: cog_010) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Three-level verification tracking: Signal â†’ Evidence â†’ Completion.
 // Signal: something changed (write tool, execute command, browser action).
 // Evidence: the change was inspected (verify tool after signal).
 // Completion: the inspection confirmed correctness (verify after evidence, or clean errors).
@@ -353,391 +353,29 @@ const VERIFICATION = {
     SIGNAL_TIMEOUT_MS: POLICY.verification.signalTimeoutMs
 };
 
-// Advance verification state machine for this round.
-// Returns the level reached this round (0-3).
-function advanceVerificationProtocol(toolCalls) {
-    const now = Date.now();
-    const callNames = toolCalls.map(tc => tc.name || 'unknown');
-
-    // Expire old signals
-    if (VERIFICATION.level >= 1 && (now - VERIFICATION.lastSignalAt) > VERIFICATION.SIGNAL_TIMEOUT_MS) {
-        // cog_011: verification_timeout reflexion trigger
-        if (!REFLEXION.pendingReflection) {
-            requestReflection('verification_timeout', {
-                signalType: VERIFICATION.lastSignalType,
-                elapsedMs: now - VERIFICATION.lastSignalAt
-            });
-            logEvent('reflexion', 'trigger_verification_timeout', { signalType: VERIFICATION.lastSignalType });
-        }
-        VERIFICATION.level = 0;
-        VERIFICATION.lastSignalType = null;
-    }
-
-    const hasWrite = callNames.some(n => WRITE_TOOLS.includes(n));
-    const hasTerminalExec = toolCalls.some(tc =>
-        tc.name === 'run_in_terminal' && classifyTerminalCommand(tc.arguments || '') === 'executing'
-    );
-    const hasBrowserExec = callNames.some(n => BROWSER_EXECUTE_TOOLS.includes(n));
-    const hasVerify = callNames.some(n => VERIFY_TOOLS.includes(n) || BROWSER_VERIFY_TOOLS.includes(n));
-    const hasErrorCheck = callNames.includes('get_errors');
-
-    // State machine transitions
-    if (hasWrite || hasTerminalExec || hasBrowserExec) {
-        // New signal — something changed
-        if (VERIFICATION.level === 0 || VERIFICATION.level === 3) {
-            VERIFICATION.level = 1;
-        }
-        VERIFICATION.lastSignalAt = now;
-        VERIFICATION.lastSignalType = hasWrite ? 'file_modify' : hasTerminalExec ? 'terminal_execute' : 'browser_action';
-        VERIFICATION.signalCount++;
-    }
-
-    if (hasVerify && VERIFICATION.level >= 1) {
-        if (VERIFICATION.level === 1) {
-            // Signal → Evidence: first verify after signal
-            VERIFICATION.level = 2;
-            VERIFICATION.evidenceCount++;
-        } else if (VERIFICATION.level === 2) {
-            // Evidence → Completion: second verify confirms correctness
-            VERIFICATION.level = 3;
-            VERIFICATION.completionCount++;
-        }
-    }
-
-    // Special: get_errors at evidence level → completion (error check = confirmation)
-    if (hasErrorCheck && VERIFICATION.level === 2) {
-        VERIFICATION.level = 3;
-        VERIFICATION.completionCount++;
-    }
-
-    return VERIFICATION.level;
-}
-
-// Reset verification protocol counters (called with drift window reset)
-function resetVerificationProtocol() {
-    VERIFICATION.signalCount = 0;
-    VERIFICATION.evidenceCount = 0;
-    VERIFICATION.completionCount = 0;
-    // Don't reset level — it carries across windows for continuity
-}
-
-// ─── Task Tracker (v2.11.0) ─────────────────────────────────────────────────
-// Snapshot for progress event detection.
-
-const TASK_TRACKER = {
-    lastSnapshot: null
-};
-
-// ─── v2.11 Helper Functions ──────────────────────────────────────────────────
-
-function getLedgerPath() {
-    return scarletPath('task_ledger.json');
-}
-
-function getCurrentTaskSnapshot(ledger) {
-    if (!ledger || !ledger.current_task) {
-        return {
-            taskId: null,
-            taskStatus: null,
-            activeStepId: null,
-            doneStepCount: 0,
-            verifiedStepCount: 0,
-            backlogExternalCount: (ledger ? (ledger.backlog_external || []) : []).length,
-            backlogInternalCount: (ledger ? (ledger.backlog_internal || []) : []).length
-        };
-    }
-    const task = ledger.current_task;
-    const steps = task.steps || [];
-    const activeStep =
-        steps.find(s => s.status === 'executing') ||
-        steps.find(s => s.status === 'in-progress') ||
-        steps.find(s => s.status === 'pending') ||
-        null;
-    const doneStepCount = steps.filter(s => s.status === 'done' || s.status === 'completed').length;
-    const verifiedStepCount = steps.filter(s => s.verified === true).length;
-    return {
-        taskId: task.id || null,
-        taskStatus: task.status || null,
-        activeStepId: activeStep ? (activeStep.id || activeStep.name || null) : null,
-        doneStepCount,
-        verifiedStepCount,
-        backlogExternalCount: (ledger.backlog_external || []).length,
-        backlogInternalCount: (ledger.backlog_internal || []).length
-    };
-}
-
-function detectProgressEvent(prevSnap, nextSnap) {
-    if (!nextSnap || !prevSnap) return false;
-    if (prevSnap.taskId !== nextSnap.taskId) return true;
-    if (prevSnap.taskStatus !== nextSnap.taskStatus) return true;
-    if (prevSnap.activeStepId !== nextSnap.activeStepId) return true;
-    if (nextSnap.doneStepCount > prevSnap.doneStepCount) return true;
-    if (nextSnap.verifiedStepCount > prevSnap.verifiedStepCount) return true;
-    if (nextSnap.taskId && prevSnap.taskId !== nextSnap.taskId &&
-        (nextSnap.backlogExternalCount < prevSnap.backlogExternalCount ||
-         nextSnap.backlogInternalCount < prevSnap.backlogInternalCount)) {
-        return true;
-    }
-    return false;
-}
-
-function isPhantomOnlyRound(callNames) {
-    return callNames.length > 0 && callNames.every(n => isPhantomToolCall(n));
-}
-
-function isPhantomDominantRound(callNames) {
-    if (!callNames.length) return false;
-    const phantom = callNames.filter(n => isPhantomToolCall(n)).length;
-    return phantom / callNames.length > 0.5;
-}
-
-function pushDriftRound({ toolCallNames, realToolCallNames, effectiveState, hadVerificationEvidence, ledgerSnapshot, hasBrowserTools, hasGptConsultation }) {
-    DRIFT.roundsInWindow++;
-
-    const phantomOnly = isPhantomOnlyRound(toolCallNames);
-    const phantomDominant = isPhantomDominantRound(toolCallNames);
-
-    if (phantomOnly) {
-        PHANTOM.phantomOnlyRoundsWindow++;
-        PHANTOM.consecutivePhantomOnlyRounds++;
-        PHANTOM.lastPhantomRoundAt = Date.now();
-        // surv_002: detect burst (consecutive phantom-only rounds exceeding threshold)
-        if (PHANTOM.consecutivePhantomOnlyRounds >= PHANTOM.BURST_THRESHOLD && !PHANTOM.recentPhantomBurst) {
-            PHANTOM.recentPhantomBurst = true;
-            logEvent('phantom', 'burst_detected', {
-                consecutive: PHANTOM.consecutivePhantomOnlyRounds,
-                threshold: PHANTOM.BURST_THRESHOLD
-            });
-        }
-        return; // DO NOT contaminate drift metrics
-    }
-    if (phantomDominant) {
-        PHANTOM.phantomDominantRoundsWindow++;
-    }
-    PHANTOM.consecutivePhantomOnlyRounds = 0;
-    PHANTOM.recentPhantomBurst = false; // surv_002: clear burst flag when real round occurs
-
-    DRIFT.validRoundsInWindow++;
-
-    // Verification evidence — browser reads during GPT consultation count as verification (cog_007)
-    if (hadVerificationEvidence) {
-        DRIFT.verificationEvidenceRounds++;
-    }
-
-    // Browser workflow tracking (cog_007)
-    if (hasBrowserTools) {
-        DRIFT.browserWorkflowRounds++;
-    }
-    if (hasGptConsultation) {
-        DRIFT.gptConsultationRounds++;
-        // GPT consultation IS a progress event — reading GPT response = gathering info for task
-        DRIFT.progressEvents++;
-    }
-
-    // Depth
-    const depthLikeTools = [
-        'read_file', 'grep_search', 'semantic_search', 'file_search',
-        'get_errors', 'get_terminal_output',
-        'read_page', 'screenshot_page', 'fetch_webpage'
-    ];
-    DRIFT.depthEvidenceCount += realToolCallNames.filter(n => depthLikeTools.includes(n)).length;
-    DRIFT.totalRealToolCalls += realToolCallNames.length;
-
-    // Progress event
-    const prevSnap = DRIFT.lastProgressSnapshot;
-    const nextSnap = ledgerSnapshot;
-    if (detectProgressEvent(prevSnap, nextSnap)) {
-        DRIFT.progressEvents++;
-    }
-    DRIFT.lastProgressSnapshot = nextSnap;
-
-    // Stability
-    if (DRIFT.lastEffectiveState === null) {
-        DRIFT.lastEffectiveState = effectiveState;
-        DRIFT.stableStateRounds++;
-    } else if (DRIFT.lastEffectiveState === effectiveState) {
-        DRIFT.stableStateRounds++;
-    } else {
-        DRIFT.stateOscillationCount++;
-        DRIFT.lastEffectiveState = effectiveState;
-    }
-}
-
-function computeQualityDrift() {
-    if (DRIFT.roundsInWindow < DRIFT.WINDOW_SIZE) return null;
-
-    const validRounds = Math.max(1, DRIFT.validRoundsInWindow);
-    const realToolCalls = Math.max(1, DRIFT.totalRealToolCalls);
-
-    // 1. Verification Evidence Score (0.25) — v2.12: reduced from 0.30 to make room for browser
-    const verificationEvidenceScore = DRIFT.verificationEvidenceRounds / validRounds;
-
-    // 2. Progress Event Score (0.25) — v2.12: reduced from 0.30, GPT consult now counts as progress
-    const progressEventScore =
-        DRIFT.progressEvents >= 2 ? 1.0 :
-        DRIFT.progressEvents === 1 ? 0.6 :
-        0.0;
-
-    // 3. Depth Score (0.20) — unchanged
-    const depthScore = DRIFT.depthEvidenceCount / realToolCalls;
-
-    // 4. Stability Score (0.15) — v2.12: reduced from 0.20
-    const stabilityScore = Math.max(0,
-        (DRIFT.stableStateRounds - DRIFT.stateOscillationCount) / validRounds
-    );
-
-    // 5. Browser Workflow Score (0.15) — v2.12 NEW (cog_007)
-    // Recognizes browser-based work as legitimate productive activity.
-    // GPT consultation rounds get full credit, other browser rounds get partial.
-    const browserWorkflowScore =
-        DRIFT.gptConsultationRounds > 0 ? Math.min(1.0, (DRIFT.gptConsultationRounds * 1.5 + DRIFT.browserWorkflowRounds * 0.5) / validRounds) :
-        DRIFT.browserWorkflowRounds > 0 ? Math.min(1.0, DRIFT.browserWorkflowRounds * 0.7 / validRounds) :
-        0.0;
-
-    const metrics = {
-        verificationEvidenceScore,
-        progressEventScore,
-        depthScore,
-        stabilityScore,
-        browserWorkflowScore,
-        browserWorkflowRounds: DRIFT.browserWorkflowRounds,
-        gptConsultationRounds: DRIFT.gptConsultationRounds,
-        // Verification protocol (cog_010)
-        verificationProtocol: {
-            signals: VERIFICATION.signalCount,
-            evidence: VERIFICATION.evidenceCount,
-            completions: VERIFICATION.completionCount,
-            currentLevel: VERIFICATION.level
-        },
-        phantomOnlyRoundsWindow: PHANTOM.phantomOnlyRoundsWindow,
-        phantomDominantRoundsWindow: PHANTOM.phantomDominantRoundsWindow,
-        phantomBurst: PHANTOM.recentPhantomBurst, // surv_002
-        phantomWindowInvalid: false, // placeholder, computed after score
-        validRounds
-    };
-
-    // Weighted score — v2.12: rebalanced with browser workflow component (exp_002: from POLICY)
-    const score =
-        verificationEvidenceScore * POLICY.drift.weights.verification +
-        progressEventScore * POLICY.drift.weights.progress +
-        depthScore * POLICY.drift.weights.depth +
-        stabilityScore * POLICY.drift.weights.stability +
-        browserWorkflowScore * POLICY.drift.weights.browser;
-
-    const shouldEnterRepair = score < DRIFT.SCORE_REPAIR_ENTER;
-    const shouldExitRepair = score >= DRIFT.SCORE_REPAIR_EXIT;
-
-    // surv_002: Phantom window guard — don't enter repair based on phantom-heavy windows.
-    // If most of the window was phantom-only rounds, the few valid rounds are not statistically
-    // meaningful. Only allow repair entrance when we have enough valid data.
-    const phantomRatio = PHANTOM.phantomOnlyRoundsWindow / Math.max(1, DRIFT.roundsInWindow);
-    const phantomWindowInvalid = phantomRatio > PHANTOM.WINDOW_INVALID_RATIO ||
-        DRIFT.validRoundsInWindow < PHANTOM.MIN_VALID_FOR_REPAIR;
-
-    if (shouldEnterRepair && !phantomWindowInvalid) {
-        DRIFT.consecutiveBadWindows++;
-    } else if (!shouldEnterRepair) {
-        DRIFT.consecutiveBadWindows = 0;
-    }
-    // NOTE: if shouldEnterRepair && phantomWindowInvalid, we neither increment nor reset —
-    // the window is simply inconclusive. Log it for visibility.
-    if (phantomWindowInvalid && shouldEnterRepair) {
-        logEvent('phantom', 'repair_blocked_by_phantom_window', {
-            phantomRatio, validRounds: DRIFT.validRoundsInWindow, score
-        });
-    }
-    metrics.phantomWindowInvalid = phantomWindowInvalid; // surv_002: fill in actual value
-
-    const shouldRepair = DRIFT.consecutiveBadWindows >= DRIFT.BAD_WINDOWS_TRIGGER;
-
-    // Log drift check to both legacy metrics.jsonl and structured events (exp_003)
-    const metricsLegacyPath = scarletPath('metrics.jsonl');
-    if (metricsLegacyPath) {
-        try {
-            const metricsPath = metricsLegacyPath;
-            const entry = {
-                ts: new Date().toISOString(),
-                event: 'drift_check',
-                metrics,
-                score,
-                shouldEnterRepair,
-                shouldExitRepair,
-                consecutiveBadWindows: DRIFT.consecutiveBadWindows,
-                inRepair: DRIFT.inRepair
-            };
-            fs.appendFileSync(metricsPath, JSON.stringify(entry) + '\n', 'utf-8');
-        } catch {}
-    }
-    logEvent('drift', 'quality_check', { score, metrics, shouldRepair, inRepair: DRIFT.inRepair });
-
-    // Reset window
-    DRIFT.roundsInWindow = 0;
-    DRIFT.validRoundsInWindow = 0;
-    DRIFT.verificationEvidenceRounds = 0;
-    DRIFT.depthEvidenceCount = 0;
-    DRIFT.totalRealToolCalls = 0;
-    DRIFT.progressEvents = 0;
-    DRIFT.stableStateRounds = 0;
-    DRIFT.stateOscillationCount = 0;
-    DRIFT.browserWorkflowRounds = 0;
-    DRIFT.gptConsultationRounds = 0;
-    DRIFT.lastDriftCheck = Date.now();
-    DRIFT.lastEffectiveState = null;
-    PHANTOM.phantomOnlyRoundsWindow = 0;
-    PHANTOM.phantomDominantRoundsWindow = 0;
-    PHANTOM.recentPhantomBurst = false; // surv_002: reset burst flag per window
-    resetVerificationProtocol(); // cog_010
-
-    return { metrics, score, shouldRepair, shouldExitRepair };
-}
-
-function enterRepairState() {
-    if (DRIFT.inRepair) return;
-    DRIFT.inRepair = true;
-    DRIFT.repairRoundsElapsed = 0;
-    DRIFT.repairNudgeCooldown = 0;
-    const st = readAgentState();
-    st.previous_state = st.state;
-    st.state = 'repair';
-    st.last_transition_at = new Date().toISOString();
-    st.last_transition_reason = 'quality_drift_detected';
-    writeAgentState(st);
-    console.log('[LOOP-GUARDIAN] QUALITY DRIFT: entering repair state');
-    logEvent('drift', 'repair_enter', { score: DRIFT.consecutiveBadWindows });
-    logDecision('quality_drift_detected', ['enter_repair', 'ignore_and_monitor'], 'enter_repair',
-        'Drift score below threshold for ' + DRIFT.consecutiveBadWindows + ' consecutive windows', 0.85);
-}
-
-function exitRepairState(reason) {
-    if (!DRIFT.inRepair) return;
-    DRIFT.inRepair = false;
-    DRIFT.consecutiveBadWindows = 0;
-    const roundsInRepair = DRIFT.repairRoundsElapsed;
-    DRIFT.repairRoundsElapsed = 0;
-    DRIFT.repairNudgeCooldown = 0;
-    // Reflexion: request lesson extraction after exiting repair
-    requestReflection('repair_exit', {
-        reason: reason || 'metrics_recovered',
-        roundsInRepair,
-        productivity: ROLLING.productivityScore,
-        phantomRatio: ROLLING.phantomRatioAvg
+// ─── Drift Detection (lazy-loaded from lib/drift.js) ────────────────────────
+let _drift = null;
+function getDrift() {
+    if (!_drift) _drift = require('./lib/drift')({
+        DRIFT, PHANTOM, VERIFICATION, POLICY, ROLLING, REFLEXION,
+        WRITE_TOOLS, VERIFY_TOOLS, BROWSER_VERIFY_TOOLS, BROWSER_EXECUTE_TOOLS, BROWSER_TOOLS,
+        classifyTerminalCommand, isPhantomToolCall,
+        readAgentState, writeAgentState, requestReflection,
+        logEvent, logDecision, scarletPath, fs
     });
-    // Sync state file to prevent split-brain (Bug A fix)
-    const st = readAgentState();
-    if (st.state === 'repair') {
-        st.previous_state = 'repair';
-        st.state = 'executing';
-        st.last_transition_at = new Date().toISOString();
-        st.last_transition_reason = 'repair_exit_' + (reason || 'metrics_recovered');
-        writeAgentState(st);
-    }
-    console.log('[LOOP-GUARDIAN] Exiting repair state (' + (reason || 'metrics_recovered') + ')');
-    logEvent('drift', 'repair_exit', { reason: reason || 'metrics_recovered', roundsInRepair });
-    logDecision('repair_exit', ['continue_repair', 'exit_repair'], 'exit_repair',
-        reason + ' after ' + roundsInRepair + ' rounds', 0.8);
+    return _drift;
 }
-
-// ─── Compulsive Loop Detector ────────────────────────────────────────────────
+function advanceVerificationProtocol(tc) { return getDrift().advanceVerificationProtocol(tc); }
+function resetVerificationProtocol() { return getDrift().resetVerificationProtocol(); }
+function getCurrentTaskSnapshot(l) { return getDrift().getCurrentTaskSnapshot(l); }
+function detectProgressEvent(p, n) { return getDrift().detectProgressEvent(p, n); }
+function isPhantomOnlyRound(cn) { return getDrift().isPhantomOnlyRound(cn); }
+function isPhantomDominantRound(cn) { return getDrift().isPhantomDominantRound(cn); }
+function pushDriftRound(args) { return getDrift().pushDriftRound(args); }
+function computeQualityDrift() { return getDrift().computeQualityDrift(); }
+function enterRepairState() { return getDrift().enterRepairState(); }
+function exitRepairState(r) { return getDrift().exitRepairState(r); }
+// â”€â”€â”€ Compulsive Loop Detector â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Detects degenerate pattern: model calls only scarlet_user_message repeatedly.
 // After SOFT_THRESHOLD, inject equilibrium enforcement message.
 // After HARD_THRESHOLD, enter cooldown (30s sleep) + force idle polling.
@@ -758,176 +396,23 @@ function getUptime() {
     return Math.floor(secs / 3600) + 'h ' + Math.floor((secs % 3600) / 60) + 'm';
 }
 
-// ─── Continuation Gate (v2.3) ────────────────────────────────────────────────
-// When the LLM emits a turn with no tool calls (would normally terminate or idle),
-// check if the task ledger has pending steps. If so, inject a continuation prompt
-// instead of entering idle mode. This enforces the Decision Contract at runtime.
-// Worker/Supervisor split: LLM = worker, extension = supervisor.
 
-const CONTINUATION_GATE = {
-    lastFiredAt: 0,
-    BASE_COOLDOWN_MS: 10000,  // base cooldown between fires
-    MAX_COOLDOWN_MS: 120000,  // cap at 2 minutes between fires
-    consecutiveFires: 0
-    // No MAX_CONSECUTIVE — gate never gives up, just backs off exponentially
-};
-
-function hasPendingSteps() {
-    const ledger = readTaskLedger();
-    if (!ledger) return { pending: false, count: 0, task: null, backlogCount: 0 };
-    
-    // Check current task steps
-    let currentPending = 0;
-    let taskTitle = null;
-    if (ledger.current_task && ledger.current_task.status !== 'done' && ledger.current_task.status !== 'completed') {
-        const steps = ledger.current_task.steps || [];
-        currentPending = steps.filter(s => s.status === 'pending' || s.status === 'in-progress').length;
-        taskTitle = ledger.current_task.title;
-    }
-    
-    // Check backlogs
-    const extBacklog = (ledger.backlog_external || []).filter(t => t.status !== 'done' && t.status !== 'completed');
-    const intBacklog = (ledger.backlog_internal || []).filter(t => t.status !== 'done' && t.status !== 'completed');
-    const backlogCount = extBacklog.length + intBacklog.length;
-    
-    return { 
-        pending: currentPending > 0 || backlogCount > 0, 
-        count: currentPending, 
-        task: taskTitle,
-        backlogCount,
-        nextBacklogItem: backlogCount > 0 ? (extBacklog[0] || intBacklog[0]).title : null
-    };
+// ─── Continuation Gate (lazy-loaded from lib/gate.js) ─────────────────────────
+let _gate = null;
+function getGate() {
+    if (!_gate) _gate = require('./lib/gate')({
+        vscode, METRICS, ROLLING, REFLEXION, POLICY,
+        readTaskLedger, writeTaskLedger,
+        logEvent, requestReflection, buildMetricsLine
+    });
+    return _gate;
 }
-
-// ─── auto_001: Semantic Promotion ────────────────────────────────────────────
-// When current task is done but backlog has items, the gate promotes the next
-// backlog item to current_task instead of just nudging. External items first.
-function promoteNextBacklogItem() {
-    const ledger = readTaskLedger();
-    if (!ledger) return null;
-
-    // Only promote if current task is done/completed or absent
-    if (ledger.current_task && ledger.current_task.status !== 'done' && ledger.current_task.status !== 'completed') {
-        return null;
-    }
-
-    const extBacklog = (ledger.backlog_external || []).filter(t => t.status !== 'done' && t.status !== 'completed');
-    const intBacklog = (ledger.backlog_internal || []).filter(t => t.status !== 'done' && t.status !== 'completed');
-    if (extBacklog.length === 0 && intBacklog.length === 0) return null;
-
-    // Pick next: external (user requests) first, then internal by position
-    const isExternal = extBacklog.length > 0;
-    const next = isExternal ? extBacklog[0] : intBacklog[0];
-
-    // Archive current task to completed_tasks
-    if (ledger.current_task && (ledger.current_task.status === 'done' || ledger.current_task.status === 'completed')) {
-        if (!ledger.completed_tasks) ledger.completed_tasks = [];
-        ledger.completed_tasks.push({
-            id: ledger.current_task.id,
-            title: ledger.current_task.title,
-            completed_at: new Date().toISOString(),
-            outcome: ledger.current_task.outcome || 'Completed (auto-archived by gate)'
-        });
-    }
-
-    // Promote backlog item to current_task
-    ledger.current_task = {
-        id: next.id,
-        title: next.title,
-        source: next.source || 'backlog-promotion',
-        priority: next.priority || 'P2',
-        status: 'active',
-        started_at: new Date().toISOString(),
-        steps: []  // LLM will plan these
-    };
-
-    // Remove promoted item from its backlog
-    if (isExternal) {
-        ledger.backlog_external = (ledger.backlog_external || []).filter(t => t.id !== next.id);
-    } else {
-        ledger.backlog_internal = (ledger.backlog_internal || []).filter(t => t.id !== next.id);
-    }
-
-    // Note: stats.total_completed is managed by Scarlet, not the gate — avoid double-counting
-    writeTaskLedger(ledger);
-    console.log('[LOOP-GUARDIAN] Gate promoted backlog item: ' + next.title);
-    logEvent('gate', 'backlog_promoted', { itemId: next.id, title: next.title, source: source });
-    METRICS.tasksAutonomous++;
-    return next;
-}
-
-function shouldFireContinuationGate() {
-    const now = Date.now();
-    // Exponential backoff: 10s, 20s, 40s, 80s, capped at 120s
-    const cooldown = Math.min(
-        CONTINUATION_GATE.BASE_COOLDOWN_MS * Math.pow(2, CONTINUATION_GATE.consecutiveFires),
-        CONTINUATION_GATE.MAX_COOLDOWN_MS
-    );
-    if (now - CONTINUATION_GATE.lastFiredAt < cooldown) return false;
-    // No max consecutive — gate persists with increasing backoff
-    const { pending } = hasPendingSteps();
-    return pending;
-}
-
-function injectContinuationGate(roundData, loopInstance) {
-    const { count, task, backlogCount, nextBacklogItem } = hasPendingSteps();
-    const id = 'scarlet_gate_' + Date.now();
-    let taskLine = '';
-    if (task && count > 0) {
-        taskLine = 'Task: ' + task + '\nPending steps: ' + count + '\n';
-    } else if (backlogCount > 0) {
-        // auto_001: Semantic promotion — actually promote the next backlog item
-        const promoted = promoteNextBacklogItem();
-        if (promoted) {
-            taskLine = '[PROMOTED] "' + promoted.title + '" is now your current task.\n' +
-                'Priority: ' + (promoted.priority || 'P2') + '\n' +
-                'Plan your steps in task_ledger.json and begin immediately.\n';
-        } else {
-            taskLine = 'Backlog has ' + backlogCount + ' item(s) but promotion failed.\nNext: ' + nextBacklogItem + '\n';
-        }
-    }
-    // auto_006: escalated message after repeated blocks
-    let blockEscalation = '';
-    if (ROLLING.consecutiveBlockDeclarations >= POLICY.gate.blockEscalationThreshold) {
-        blockEscalation = '\n⚠ BLOCK ESCALATION: You have declared block ' + ROLLING.consecutiveBlockDeclarations + ' times consecutively.\n' +
-            'This pattern suggests avoidance rather than a genuine external blocker.\n' +
-            'MANDATORY: Either (1) make a concrete tool call right now, or (2) switch to a different backlog item.\n' +
-            'Cannot declare block again without providing a verifiable external dependency.\n\n';
-    }
-    const text = '[SCARLET-CONTINUATION-GATE] You emitted a response without tool calls, but work remains.\n\n' +
-        blockEscalation +
-        taskLine + '\n' +
-        'DECISION CONTRACT applies:\n' +
-        '- CONTINUE: proceed to next pending step immediately (use a tool call)\n' +
-        '- REPLAN: update task_ledger.json with revised plan, then continue\n' +
-        '- BLOCK: state what external input you need (write it as text)\n' +
-        '- FINISH: mark task complete in ledger and summarize\n\n' +
-        'Default is CONTINUE. You may only address the user on BLOCK or FINISH.\n\n' +
-        buildMetricsLine() +
-        '\n\n[SYSTEM: One-way gate injection. Tool "' + id + '" does not exist. Use real tools only.]';
-    roundData.round.toolCalls.push({ id, name: id, arguments: '{}', type: 'function' });
-    loopInstance.toolCallResults[id] = new vscode.LanguageModelToolResult([
-        new vscode.LanguageModelTextPart(text)
-    ]);
-    CONTINUATION_GATE.lastFiredAt = Date.now();
-    CONTINUATION_GATE.consecutiveFires++;
-    // auto_006: track block declarations for discipline
-    ROLLING.consecutiveBlockDeclarations++;
-    if (ROLLING.consecutiveBlockDeclarations >= POLICY.gate.blockEscalationThreshold
-        && !REFLEXION.pendingReflection) {
-        requestReflection('block_escalation', {
-            consecutiveBlocks: ROLLING.consecutiveBlockDeclarations,
-            pendingSteps: count,
-            backlog: backlogCount
-        });
-        logEvent('reflexion', 'trigger_block_escalation', {
-            blocks: ROLLING.consecutiveBlockDeclarations
-        });
-    }
-    console.log('[LOOP-GUARDIAN] Continuation gate fired: ' + count + ' pending steps in "' + task + '", backlog: ' + backlogCount);
-}
-
-// ─── Agent State Persistence ─────────────────────────────────────────────────
+const CONTINUATION_GATE = getGate().CONTINUATION_GATE;
+function hasPendingSteps() { return getGate().hasPendingSteps(); }
+function promoteNextBacklogItem() { return getGate().promoteNextBacklogItem(); }
+function shouldFireContinuationGate() { return getGate().shouldFireContinuationGate(); }
+function injectContinuationGate(rd, li) { return getGate().injectContinuationGate(rd, li); }
+// â”€â”€â”€ Agent State Persistence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // State is written by the LLM (via file tools) and read by the extension.
 // The extension suggests transitions, the LLM decides.
 
@@ -948,7 +433,7 @@ function getStatePath() {
     return scarletPath('agent_state.json');
 }
 
-// ─── Safe JSON Reader (BOM strip + safe parse + fallback) ────────────────────
+// â”€â”€â”€ Safe JSON Reader (BOM strip + safe parse + fallback) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function readJsonSafe(filePath, fallback) {
     try {
         if (!fs.existsSync(filePath)) return fallback;
@@ -958,7 +443,7 @@ function readJsonSafe(filePath, fallback) {
     } catch { return fallback; }
 }
 
-// ─── Safe JSON Writer (atomic: temp file + rename) ──────────────────────────
+// â”€â”€â”€ Safe JSON Writer (atomic: temp file + rename) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function writeJsonSafe(filePath, data) {
     try {
         const dir = path.dirname(filePath);
@@ -989,7 +474,7 @@ function writeAgentState(state) {
     writeJsonSafe(p, state);
 }
 
-// ─── cog_012: State Audit Logging ────────────────────────────────────────────
+// â”€â”€â”€ cog_012: State Audit Logging â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Appends a JSONL entry for every state transition for post-mortem debugging.
 function logStateAudit(prev, next) {
     const auditPath = scarletPath('state_audit.jsonl');
@@ -1009,7 +494,7 @@ function logStateAudit(prev, next) {
     logEvent('state', 'transition', entry);
 }
 
-// ─── Task Ledger Reader ──────────────────────────────────────────────────────
+// â”€â”€â”€ Task Ledger Reader â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function readTaskLedger() {
     const p = scarletPath('task_ledger.json');
@@ -1034,7 +519,7 @@ function hasInternalBacklog() {
     return ledger && (ledger.backlog_internal || []).some(t => t.status !== 'done' && t.status !== 'completed');
 }
 
-// ─── Contextual Prompt Builder (lazy-loaded from lib/prompt-builder.js) ──────
+// â”€â”€â”€ Contextual Prompt Builder (lazy-loaded from lib/prompt-builder.js) â”€â”€â”€â”€â”€â”€
 let _promptBuilder = null;
 function getPromptBuilder() {
     if (!_promptBuilder) _promptBuilder = require('./lib/prompt-builder')({
@@ -1047,7 +532,7 @@ function getPromptBuilder() {
 function buildMetricsLine() { return getPromptBuilder().buildMetricsLine(); }
 function buildContextualPrompt(purpose, agentState) { return getPromptBuilder().buildContextualPrompt(purpose, agentState); }
 
-// ─── State Inference (lazy-loaded from lib/state-inference.js) ────────────────
+// â”€â”€â”€ State Inference (lazy-loaded from lib/state-inference.js) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const _stateInferenceMod = require('./lib/state-inference');
 const WRITE_TOOLS = _stateInferenceMod.WRITE_TOOLS;
 const VERIFY_TOOLS = _stateInferenceMod.VERIFY_TOOLS;
@@ -1068,7 +553,7 @@ function detectGptConsultation(tc) { return getStateInference().detectGptConsult
 function inferStateFromToolCalls(tc, s) { return getStateInference().inferStateFromToolCalls(tc, s); }
 function resolveEffectiveState(o) { return getStateInference().resolveEffectiveState(o); }
 
-// ─── Nudge System (lazy-loaded from lib/nudge.js) ────────────────────────────
+// â”€â”€â”€ Nudge System (lazy-loaded from lib/nudge.js) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let _nudge = null;
 function getNudge() {
     if (!_nudge) _nudge = require('./lib/nudge')({
@@ -1080,128 +565,20 @@ const NUDGE_STATE = getNudge().NUDGE_STATE;
 function shouldOperationalNudge(a, r, l) { return getNudge().shouldOperationalNudge(a, r, l); }
 function shouldMetaNudge(a, l, o, r) { return getNudge().shouldMetaNudge(a, l, o, r); }
 
-// ─── Structured Event Logger (v2.12: exp_003) ───────────────────────────────
-// Centralized JSONL logging with subsystem categorization and retention policy.
-// Subsystems: round, drift, state, verification, nudge, gate, reflexion, gpt, error
-// All events go to .scarlet/events.jsonl for unified offline analytics.
 
-const LOG_CONFIG = {
-    MAX_FILE_SIZE: POLICY.logging.maxEventFileBytes,
-    RETENTION_LINES: POLICY.logging.maxMetricsFileLines,
-    logPath: null                  // cached path
-};
-
-function logEvent(subsystem, event, data) {
-    if (!LOG_CONFIG.logPath) {
-        const p = scarletPath('events.jsonl');
-        if (!p) return;
-        LOG_CONFIG.logPath = p;
-    }
-    const entry = {
-        ts: new Date().toISOString(),
-        sub: subsystem,
-        evt: event,
-        ...data
-    };
-    try {
-        fs.appendFileSync(LOG_CONFIG.logPath, JSON.stringify(entry) + '\n', 'utf-8');
-        // Retention check (every ~100 events to avoid stat overhead)
-        if (Math.random() < 0.01) rotateLogIfNeeded();
-    } catch {}
+// ─── Logging (lazy-loaded from lib/logging.js) ──────────────────────────────
+let _logging = null;
+function getLogging() {
+    if (!_logging) _logging = require('./lib/logging')({
+        METRICS, VERIFICATION, POLICY, scarletPath, fs
+    });
+    return _logging;
 }
-
-function rotateLogIfNeeded() {
-    try {
-        if (!LOG_CONFIG.logPath || !fs.existsSync(LOG_CONFIG.logPath)) return;
-        const stat = fs.statSync(LOG_CONFIG.logPath);
-        if (stat.size <= LOG_CONFIG.MAX_FILE_SIZE) return;
-
-        const content = fs.readFileSync(LOG_CONFIG.logPath, 'utf-8');
-        const lines = content.split('\n').filter(Boolean);
-        const kept = lines.slice(-LOG_CONFIG.RETENTION_LINES);
-        fs.writeFileSync(LOG_CONFIG.logPath, kept.join('\n') + '\n', 'utf-8');
-        console.log('[LOOP-GUARDIAN] Log rotated: ' + lines.length + ' -> ' + kept.length + ' lines');
-    } catch {}
-}
-
-// ─── Metrics Logger (persistent) ─────────────────────────────────────────────
-
-function logRoundMetrics(roundData, eventType) {
-    const metricsPath = scarletPath('metrics.jsonl');
-    if (!metricsPath) { METRICS.metricsSkipped++; return; }
-    try {
-
-        const toolCallNames = (roundData.round.toolCalls || []).map(tc => tc.name || 'unknown');
-        const entry = {
-            ts: new Date().toISOString(),
-            event: eventType,  // 'round' | 'idle' | 'idle-life' | 'message'
-            toolCalls: toolCallNames.length,
-            toolCallNames: toolCallNames,
-            state: METRICS.state,
-            verificationLevel: VERIFICATION.level,  // cog_010
-            uptimeMs: METRICS.activatedAt ? Date.now() - METRICS.activatedAt : 0,
-            totalToolCalls: METRICS.toolCalls,
-            totalMessages: METRICS.messagesDelivered,
-            totalIdleLifeTriggers: METRICS.idleLifeTriggers,
-            // auto_008: Autonomy metrics
-            autonomy: {
-                autonomous: METRICS.tasksAutonomous,
-                assisted: METRICS.tasksAssisted,
-                goalsCompleted: METRICS.goalsCompleted
-            }
-        };
-        fs.appendFileSync(metricsPath, JSON.stringify(entry) + '\n', 'utf-8');
-        // Also log to structured events (exp_003)
-        logEvent('round', eventType, { tools: toolCallNames, state: METRICS.state, vLevel: VERIFICATION.level });
-    } catch (e) {
-        console.log('[LOOP-GUARDIAN] Metrics write error: ' + e.message);
-        // Diagnostic: write error to separate file for debug when console inaccessible
-        try {
-            const errPath = scarletPath('metrics-errors.log');
-            fs.appendFileSync(errPath, new Date().toISOString() + ' ' + e.message + '\n', 'utf-8');
-        } catch (_) {}
-    }
-}
-
-// ─── Decision Journal (idle_005: Cognitive Journaling) ───────────────────────
-// Logs significant decisions with alternatives, rationale, and confidence.
-// Reviewed periodically by the idle task for outcome validation.
-
-function logDecision(context, alternatives, chosen, rationale, confidence) {
-    const journalPath = scarletPath('decision-journal.jsonl');
-    if (!journalPath) return;
-    const entry = {
-        ts: new Date().toISOString(),
-        id: 'dec_' + Date.now(),
-        context,
-        alternatives,
-        chosen,
-        rationale,
-        confidence: Math.max(0, Math.min(1, confidence || 0.5)),
-        validated: false,
-        outcome: null
-    };
-    try {
-        fs.appendFileSync(journalPath, JSON.stringify(entry) + '\n');
-    } catch (e) {
-        console.warn('[LOOP-GUARDIAN] Decision journal write failed: ' + e.message);
-    }
-}
-
-function getRecentDecisions(maxEntries) {
-    const journalPath = scarletPath('decision-journal.jsonl');
-    if (!journalPath) return [];
-    try {
-        if (!fs.existsSync(journalPath)) return [];
-        const stat = fs.statSync(journalPath);
-        if (stat.size > POLICY.logging.maxEventFileBytes) return []; // safety guard
-        const lines = fs.readFileSync(journalPath, 'utf-8').trim().split('\n').filter(Boolean);
-        const entries = lines.map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
-        return entries.slice(-(maxEntries || 20));
-    } catch { return []; }
-}
-
-// ─── Buffer: read + shift first message ──────────────────────────────────────
+function logEvent(sub, evt, data) { return getLogging().logEvent(sub, evt, data); }
+function logRoundMetrics(rd, et) { return getLogging().logRoundMetrics(rd, et); }
+function logDecision(ctx, alts, ch, rat, conf) { return getLogging().logDecision(ctx, alts, ch, rat, conf); }
+function getRecentDecisions(n) { return getLogging().getRecentDecisions(n); }
+// â”€â”€â”€ Buffer: read + shift first message â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function readAndShiftBuffer() {
     const bufferPath = getBufferPath();
@@ -1255,8 +632,8 @@ function getBufferCount() {
     } catch { return 0; }
 }
 
-// ─── Phantom Tool Call Injection ─────────────────────────────────────────────
-// Injects a message as a fake tool call result — the LLM sees it as part of
+// â”€â”€â”€ Phantom Tool Call Injection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Injects a message as a fake tool call result â€” the LLM sees it as part of
 // the conversation (not system context). This is the primary delivery channel.
 
 function extractMessage(bufferEntry) {
@@ -1269,7 +646,7 @@ function injectMessage(roundData, loopInstance, messageText) {
     const id = 'scarlet_bridge_' + Date.now();
     const formatted = '[SCARLET-MESSAGE] Messaggio da Davide:\n\n' +
         messageText +
-        '\n\nRispondi a questo messaggio. Ha priorità assoluta su qualsiasi altro task in corso.' +
+        '\n\nRispondi a questo messaggio. Ha prioritÃ  assoluta su qualsiasi altro task in corso.' +
         '\n\n[SYSTEM: This message arrived via one-way injection. There is no callable tool named "' + id + '". Do NOT attempt to call it. Use real tools only.]';
 
     roundData.round.toolCalls.push({
@@ -1282,30 +659,30 @@ function injectMessage(roundData, loopInstance, messageText) {
         new vscode.LanguageModelTextPart(formatted)
     ]);
     METRICS.messagesDelivered++;
-    METRICS.tasksAssisted++; // auto_008: user message → assisted task
+    METRICS.tasksAssisted++; // auto_008: user message â†’ assisted task
     console.log('[LOOP-GUARDIAN] Message injected via phantom tool call');
 }
 
-// ─── Hook: shouldBypassToolLimit ─────────────────────────────────────────────
+// â”€â”€â”€ Hook: shouldBypassToolLimit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function shouldBypassToolLimit(_request) {
     if (!cfg('enabled')) return false;
     return cfg('bypassToolLimit') === true;
 }
 
-// ─── Hook: shouldBypassYield ─────────────────────────────────────────────────
+// â”€â”€â”€ Hook: shouldBypassYield â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function shouldBypassYield(_request) {
     if (!cfg('enabled')) return false;
     return cfg('bypassYield') === true;
 }
 
-// ─── Idle Life Injection ─────────────────────────────────────────────────────
-// Injects a phantom "idle life" turn — the LLM gets time to live, not just wait.
+// â”€â”€â”€ Idle Life Injection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Injects a phantom "idle life" turn â€” the LLM gets time to live, not just wait.
 
 let lastIdleLifeTime = 0;
 
-// ─── Idle Tasks (lazy-loaded from lib/idle-tasks.js) ─────────────────────────
+// â”€â”€â”€ Idle Tasks (lazy-loaded from lib/idle-tasks.js) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let _idleTasks = null;
 function getIdleTasks() {
     if (!_idleTasks) _idleTasks = require('./lib/idle-tasks')({
@@ -1333,7 +710,7 @@ function injectIdleLife(roundData, loopInstance) {
             taskDirective = '\n\n[SUGGESTED GOAL] ' + nextGoal.id + ': ' + nextGoal.title +
                 (nextGoal.priority ? ' (' + nextGoal.priority + ')' : '') +
                 (nextGoal.layer ? ' [' + nextGoal.layer + ']' : '') +
-                (nextGoal.description ? '\n→ ' + nextGoal.description : '');
+                (nextGoal.description ? '\nâ†’ ' + nextGoal.description : '');
         }
     }
 
@@ -1354,9 +731,9 @@ function injectIdleLife(roundData, loopInstance) {
     logEvent('round', 'idle_life', { count: METRICS.idleLifeTriggers });
 }
 
-// ─── Hook: onLoopCheck ───────────────────────────────────────────────────────
+// â”€â”€â”€ Hook: onLoopCheck â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Called EVERY iteration of _runLoop after runOne() completes.
-// Returns: false → loop continues | true → enter termination block
+// Returns: false â†’ loop continues | true â†’ enter termination block
 // v2: reads persistent state, uses rolling metrics, injects contextual prompts.
 
 let rateLimitRetryCount = 0;
@@ -1384,7 +761,7 @@ async function onLoopCheck(roundData, loopInstance) {
         return !roundData.round.toolCalls.length || roundData.response?.type !== 'success';
     }
 
-    // ── Non-blocking compulsive loop cooldown (Bug H fix) ──
+    // â”€â”€ Non-blocking compulsive loop cooldown (Bug H fix) â”€â”€
     if (COMPULSIVE_LOOP.coolingUntil > 0 && Date.now() < COMPULSIVE_LOOP.coolingUntil) {
         console.log('[LOOP-GUARDIAN] Cooling period active, skipping round.');
         return false; // keep loop alive but skip all processing
@@ -1395,7 +772,7 @@ async function onLoopCheck(roundData, loopInstance) {
         console.log('[LOOP-GUARDIAN] Cooling period ended, resuming.');
     }
 
-    // ── Rate limit handling (unchanged) ──
+    // â”€â”€ Rate limit handling (unchanged) â”€â”€
     if (roundData.response && roundData.response.type !== 'success') {
         const respType = roundData.response.type;
         if (respType === 'rateLimited' || respType === 'quotaExceeded') {
@@ -1418,10 +795,10 @@ async function onLoopCheck(roundData, loopInstance) {
         rateLimitRetryCount = 0;
     }
 
-    // ── Read persistent state ──
+    // â”€â”€ Read persistent state â”€â”€
     const agentState = readAgentState();
 
-    // ── ACTIVE MODE: agent made tool calls this round ──
+    // â”€â”€ ACTIVE MODE: agent made tool calls this round â”€â”€
     if (roundData.round.toolCalls.length > 0) {
         const callNames = roundData.round.toolCalls.map(tc => tc.name || 'unknown');
         const phantomCount = callNames.filter(n => isPhantomToolCall(n)).length;
@@ -1436,7 +813,7 @@ async function onLoopCheck(roundData, loopInstance) {
         ROLLING.roundsSinceVerification++;
         ROLLING.roundsSinceLedgerUpdate++;
 
-        // ── GPT consultation detection ──
+        // â”€â”€ GPT consultation detection â”€â”€
         ROLLING.roundsSinceGptConsult++;
         if (detectGptConsultation(roundData.round.toolCalls)) {
             ROLLING.lastGptConsultAt = Date.now();
@@ -1445,7 +822,7 @@ async function onLoopCheck(roundData, loopInstance) {
             logEvent('gpt', 'consultation_detected', {});
         }
 
-        // ── Structural change detection (trigger #4) ──
+        // â”€â”€ Structural change detection (trigger #4) â”€â”€
         // Split: code changes vs config changes. Only code changes count for Decision Collapse.
         // Both count for GPT pre-change review trigger.
         const CODE_FILES = ['extension.js', 'apply-patch.ps1', 'block-01-role.txt'];
@@ -1466,7 +843,7 @@ async function onLoopCheck(roundData, loopInstance) {
             }
         }
 
-        // ── Ledger modification check (v2.11: moved before Decision Collapse to fix TDZ bug) ──
+        // â”€â”€ Ledger modification check (v2.11: moved before Decision Collapse to fix TDZ bug) â”€â”€
         const root = getWorkspaceRoot();
         const ledgerPath = scarletPath('task_ledger.json');
         let ledgerModified = false;
@@ -1488,7 +865,7 @@ async function onLoopCheck(roundData, loopInstance) {
         const ledger = ledgerPath ? readJsonSafe(ledgerPath, null) : null;
         const ledgerSnapshot = getCurrentTaskSnapshot(ledger);
 
-        // ── Decision Collapse: track meaningful state changes (v2.9.0, v2.12: cog_009 fix) ──
+        // â”€â”€ Decision Collapse: track meaningful state changes (v2.9.0, v2.12: cog_009 fix) â”€â”€
         // Only code changes and task-level ledger changes count as decisions.
         // Config bookkeeping (goals.json status, agent_state) does NOT reset the counter.
         ROLLING.roundsSinceLastDecision++;
@@ -1499,7 +876,7 @@ async function onLoopCheck(roundData, loopInstance) {
             const newStatus = ledger.current_task.status;
             if (newId !== ROLLING.lastKnownTaskId || newStatus !== ROLLING.lastKnownTaskStatus) {
                 isDecision = true;
-                // cog_011: detect task abandonment — old task changed without completion
+                // cog_011: detect task abandonment â€” old task changed without completion
                 if (newId !== ROLLING.lastKnownTaskId && ROLLING.lastKnownTaskId
                     && ROLLING.lastKnownTaskStatus !== 'done' && ROLLING.lastKnownTaskStatus !== 'completed'
                     && !REFLEXION.pendingReflection) {
@@ -1526,7 +903,7 @@ async function onLoopCheck(roundData, loopInstance) {
             ROLLING.consecutiveBlockDeclarations = 0;
         }
 
-        // ── State inference (v2.11: semantic tool classification + confidence-based resolution) ──
+        // â”€â”€ State inference (v2.11: semantic tool classification + confidence-based resolution) â”€â”€
         const inferredState = inferStateFromToolCalls(roundData.round.toolCalls, agentState.state);
         const resolved = resolveEffectiveState({
             agentState,
@@ -1548,7 +925,7 @@ async function onLoopCheck(roundData, loopInstance) {
                         resolved.effectiveState === 'reflecting' ? 'Reflecting' :
                         resolved.effectiveState === 'repair' ? 'Repair' : 'Executing';
 
-        // ── Reflexion: check if reflection was written (v2.10.0) ──
+        // â”€â”€ Reflexion: check if reflection was written (v2.10.0) â”€â”€
         if (REFLEXION.pendingReflection && checkReflectionWritten()) {
             console.log('[LOOP-GUARDIAN] Reflection written, clearing pending request');
             REFLEXION.pendingReflection = null;
@@ -1561,21 +938,21 @@ async function onLoopCheck(roundData, loopInstance) {
             }
         }
 
-        // ── Verification detection (v2.12: cog_010 three-level protocol) ──
+        // â”€â”€ Verification detection (v2.12: cog_010 three-level protocol) â”€â”€
         const hadVerificationEvidence = callNames.some(n =>
             VERIFY_TOOLS.includes(n) || BROWSER_VERIFY_TOOLS.includes(n)
         );
         if (hadVerificationEvidence && realCount > 0) {
             ROLLING.roundsSinceVerification = 0;
         }
-        // Advance three-level verification protocol (signal → evidence → completion)
+        // Advance three-level verification protocol (signal â†’ evidence â†’ completion)
         const verificationLevel = advanceVerificationProtocol(roundData.round.toolCalls);
 
-        // ── Browser workflow detection for drift (v2.12: cog_007) ──
+        // â”€â”€ Browser workflow detection for drift (v2.12: cog_007) â”€â”€
         const hasBrowserTools = callNames.some(n => BROWSER_TOOLS.includes(n));
         const hasGptConsultation = ROLLING.roundsSinceGptConsult === 0; // detected this round
 
-        // ── Quality Drift (v2.12: rebalanced with browser workflow awareness) ──
+        // â”€â”€ Quality Drift (v2.12: rebalanced with browser workflow awareness) â”€â”€
         const realCallNames = callNames.filter(n => !isPhantomToolCall(n));
         pushDriftRound({
             toolCallNames: callNames,
@@ -1594,10 +971,10 @@ async function onLoopCheck(roundData, loopInstance) {
                 exitRepairState('quality_recovered_score_' + driftResult.score.toFixed(2));
             }
         }
-        // v2.11: Repair escape valve — auto-exit after REPAIR_MAX_ROUNDS
+        // v2.11: Repair escape valve â€” auto-exit after REPAIR_MAX_ROUNDS
         if (DRIFT.inRepair) {
             DRIFT.repairRoundsElapsed++;
-            // cog_011: prolonged_repair reflexion trigger — if stuck in repair for N rounds
+            // cog_011: prolonged_repair reflexion trigger â€” if stuck in repair for N rounds
             if (DRIFT.repairRoundsElapsed === POLICY.reflexion.prolongedRepairTrigger && !REFLEXION.pendingReflection) {
                 requestReflection('prolonged_repair', {
                     roundsInRepair: DRIFT.repairRoundsElapsed,
@@ -1624,7 +1001,7 @@ async function onLoopCheck(roundData, loopInstance) {
             }
         }
 
-        // ── Compulsive loop detection (updated for v2 phantom naming) ──
+        // â”€â”€ Compulsive loop detection (updated for v2 phantom naming) â”€â”€
         const allPhantom = callNames.every(n => isPhantomToolCall(n));
 
         if (allPhantom) {
@@ -1650,8 +1027,8 @@ async function onLoopCheck(roundData, loopInstance) {
                     new vscode.LanguageModelTextPart(
                         '[LOOP-GUARDIAN EMERGENCY] COMPULSIVE LOOP DETECTED (' + count + ' consecutive phantom-only rounds).\n\n' +
                         'You are calling non-existent tools repeatedly. STOP.\n' +
-                        'Tools starting with "scarlet_" are ONE-WAY injections — they cannot be called.\n\n' +
-                        'MANDATORY — do ONE of these:\n' +
+                        'Tools starting with "scarlet_" are ONE-WAY injections â€” they cannot be called.\n\n' +
+                        'MANDATORY â€” do ONE of these:\n' +
                         '1. Read .scarlet/task_ledger.json and work on a task\n' +
                         '2. Write a reflection using the memory tool\n' +
                         '3. Output text WITHOUT any tool calls\n\n' +
@@ -1694,12 +1071,12 @@ async function onLoopCheck(roundData, loopInstance) {
                 ]);
             }
         } else {
-            // Real tool calls — reset compulsive counter
+            // Real tool calls â€” reset compulsive counter
             COMPULSIVE_LOOP.consecutivePhantomOnlyRounds = 0;
-            CONTINUATION_GATE.consecutiveFires = 0; // real work → reset gate
+            CONTINUATION_GATE.consecutiveFires = 0; // real work â†’ reset gate
         }
 
-        // cog_011: high phantom ratio trigger — persistent mixed phantom/real rounds
+        // cog_011: high phantom ratio trigger â€” persistent mixed phantom/real rounds
         if (ROLLING.phantomRatioAvg > REFLEXION.HIGH_PHANTOM_THRESHOLD && !allPhantom) {
             REFLEXION.consecutiveHighPhantomRounds++;
             if (REFLEXION.consecutiveHighPhantomRounds >= REFLEXION.HIGH_PHANTOM_ROUNDS_TRIGGER
@@ -1719,7 +1096,7 @@ async function onLoopCheck(roundData, loopInstance) {
             REFLEXION.consecutiveHighPhantomRounds = 0;
         }
 
-        // ── Nudge injection (v2.5: skip if already injected this round) ──
+        // â”€â”€ Nudge injection (v2.5: skip if already injected this round) â”€â”€
         if (!injectedThisRound) {
             // GPT pre-change nudge: structural change detected and haven't consulted GPT recently
             if (isStructuralChange && ROLLING.roundsSinceGptConsult >= 3) {
@@ -1739,7 +1116,7 @@ async function onLoopCheck(roundData, loopInstance) {
             }
         }
 
-        // ── Check buffer for user message ──
+        // â”€â”€ Check buffer for user message â”€â”€
         const entry = readAndShiftBuffer();
         if (entry) {
             const msg = extractMessage(entry);
@@ -1751,8 +1128,8 @@ async function onLoopCheck(roundData, loopInstance) {
         return false;
     }
 
-    // ── IDLE MODE: no tool calls — would normally terminate ──
-    // CONTINUATION GATE: if task has pending steps, don't go idle — enforce Decision Contract
+    // â”€â”€ IDLE MODE: no tool calls â€” would normally terminate â”€â”€
+    // CONTINUATION GATE: if task has pending steps, don't go idle â€” enforce Decision Contract
     if (shouldFireContinuationGate()) {
         injectContinuationGate(roundData, loopInstance);
         logRoundMetrics(roundData, 'continuation-gate');
@@ -1779,7 +1156,7 @@ async function onLoopCheck(roundData, loopInstance) {
         const idleLifeInterval = cfg('idleLifeIntervalMs') || POLICY.idle.lifeIntervalMs;
         const maxIdleMs = cfg('maxIdleTimeoutMs') || POLICY.idle.maxTimeoutMs; // surv_005: max idle
 
-        // surv_005: Max idle timeout — prevent infinite opaque loop
+        // surv_005: Max idle timeout â€” prevent infinite opaque loop
         if (Date.now() - idleStartTime > maxIdleMs) {
             console.log('[LOOP-GUARDIAN] Max idle timeout (' + (maxIdleMs / 1000) + 's). Exiting idle loop.');
             METRICS.state = 'Idle';
@@ -1798,7 +1175,7 @@ async function onLoopCheck(roundData, loopInstance) {
             return false;
         }
 
-        // ── Idle Life: contextual prompt based on state ──
+        // â”€â”€ Idle Life: contextual prompt based on state â”€â”€
         if (idleLifeEnabled) {
             const now = Date.now();
             const sinceLastLife = lastIdleLifeTime === 0
@@ -1818,7 +1195,7 @@ async function onLoopCheck(roundData, loopInstance) {
                 } else if (currentState.state === 'executing') {
                     injectContextualIdle(roundData, loopInstance, 'verify', currentState);
                 } else if (ROLLING.roundsSinceGptConsult >= ROLLING.GPT_CONSULT_IDLE_THRESHOLD) {
-                    // No tasks, no backlog, and haven't consulted GPT recently → nudge consultation
+                    // No tasks, no backlog, and haven't consulted GPT recently â†’ nudge consultation
                     injectContextualIdle(roundData, loopInstance, 'gpt_consult', currentState);
                 } else {
                     injectIdleLife(roundData, loopInstance);
@@ -1857,7 +1234,7 @@ async function onLoopCheck(roundData, loopInstance) {
     }
 }
 
-// ─── Contextual Idle Injection ──────────────────────────────────────────────
+// â”€â”€â”€ Contextual Idle Injection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function injectContextualIdle(roundData, loopInstance, purpose, agentState) {
     const id = 'scarlet_ctx_' + Date.now();
@@ -1870,7 +1247,7 @@ function injectContextualIdle(roundData, loopInstance, purpose, agentState) {
     console.log('[LOOP-GUARDIAN] Contextual idle injected: ' + purpose);
 }
 
-// ─── Metrics Dashboard (lazy-loaded from lib/dashboard.js) ───────────────────
+// â”€â”€â”€ Metrics Dashboard (lazy-loaded from lib/dashboard.js) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 let _dashboard = null;
 function getDashboard() {
@@ -1884,7 +1261,7 @@ function updateMetricsPanel() { getDashboard().updateMetricsPanel(); }
 function pushMetricsHistory() { getDashboard().pushMetricsHistory(); }
 function createMetricsPanel(context) { getDashboard().createMetricsPanel(context); }
 
-// ─── WebView Panel (lazy-loaded from lib/panel.js) ───────────────────────────
+// â”€â”€â”€ WebView Panel (lazy-loaded from lib/panel.js) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 let _panel = null;
 function getPanel() {
@@ -1896,7 +1273,7 @@ function getPanel() {
 function updatePanel() { getPanel().updatePanel(); }
 function createPanel(context) { getPanel().createPanel(context); }
 
-// ─── Patch / Restore Commands (lazy-loaded from lib/patcher.js) ──────────────
+// â”€â”€â”€ Patch / Restore Commands (lazy-loaded from lib/patcher.js) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 let _patcher = null;
 function getPatcher() {
@@ -1906,9 +1283,9 @@ function getPatcher() {
 function patchCopilotChat() { return getPatcher().patchCopilotChat(); }
 function restoreCopilotChat() { return getPatcher().restoreCopilotChat(); }
 
-// ─── Extension Lifecycle ─────────────────────────────────────────────────────
+// â”€â”€â”€ Extension Lifecycle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// sub_001: Runtime assumption validator — checks critical invariants at startup.
+// sub_001: Runtime assumption validator â€” checks critical invariants at startup.
 function validateRuntimeAssumptions() {
     const violations = [];
 
@@ -1974,7 +1351,7 @@ function activate(context) {
                 ' | Prod: ' + ROLLING.productivityScore.toFixed(2) +
                 ' | Buffer: ' + getBufferCount() +
                 (METRICS.nudgesInjected ? ' | Nudges: ' + METRICS.nudgesInjected : '') +
-                (METRICS.compulsiveLoopDetections ? ' | ⚠ CompulsiveStop: ' + METRICS.compulsiveLoopDetections : '')
+                (METRICS.compulsiveLoopDetections ? ' | âš  CompulsiveStop: ' + METRICS.compulsiveLoopDetections : '')
             );
         }),
         vscode.commands.registerCommand('scarlet.guardian.panel', () => {
@@ -2014,7 +1391,7 @@ function deactivate() {
 
 module.exports = { activate, deactivate };
 
-// ─── Test Exports (exp_005) ──────────────────────────────────────────────────
+// â”€â”€â”€ Test Exports (exp_005) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Expose internals only when SCARLET_TEST env var is set, for automated testing.
 if (process.env.SCARLET_TEST) {
     const _db = getDashboard(); // eager-load dashboard for test access
