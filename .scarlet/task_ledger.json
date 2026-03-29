@@ -1,22 +1,27 @@
 {
     "current_task":  {
-                         "id":  "int_028",
-                         "started_at":  "2026-03-29T20:30:00Z",
+                         "id":  "int_029",
+                         "started_at":  "2026-03-29T20:25:00Z",
                          "source":  "goals-v3",
-                         "priority":  "P2",
+                         "priority":  "P1",
                          "steps":  [
                                        {
                                            "status":  "done",
-                                           "title":  "logStateAudit() + state_audit.jsonl",
+                                           "title":  "cog_012: State Audit Logging",
                                            "id":  "s1"
                                        },
                                        {
                                            "status":  "done",
-                                           "title":  "Syntax + deploy + commit",
+                                           "title":  "auto_007: Goal-Driven Idle Selection",
                                            "id":  "s2"
+                                       },
+                                       {
+                                           "status":  "done",
+                                           "title":  "surv_005: Reduce Idle Blindness",
+                                           "id":  "s3"
                                        }
                                    ],
-                         "title":  "cog_012: State Audit Logging",
+                         "title":  "surv_005 + cog_012 + auto_007 batch",
                          "status":  "done"
                      },
     "completed_tasks":  [
@@ -90,7 +95,7 @@
                              }
                          ],
     "stats":  {
-                  "total_completed":  25,
+                  "total_completed":  26,
                   "total_abandoned":  0
               }
 }
