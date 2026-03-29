@@ -1,6 +1,6 @@
 {
   "schema_version": "3.0.0",
-  "last_updated": "2026-03-29T19:30:55.214Z",
+  "last_updated": "2026-03-29T19:33:55.121Z",
   "near_impossible_goal": "Autonomous persistent entity with eventual embodiment",
   "notes": "Goal graph v3. Co-designed with GPT. Focus: robustezza runtime, qualita semantica, modularizzazione, crescita autonoma.",
   "layers": [
@@ -538,7 +538,7 @@
           "title": "Replay Harness",
           "description": "Capacita di replay sessioni da log per debugging.",
           "priority": "P1",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             "exp_003"
           ],
@@ -546,7 +546,9 @@
             "Replay di sequenze di stato",
             "Visualizzazione timeline",
             "Identificazione anomalie"
-          ]
+          ],
+          "artifact": "tools/replay.js",
+          "notes": "v2.12: Session replay with filter, summary, color output. Tested on live events."
         },
         {
           "id": "exp_005",
