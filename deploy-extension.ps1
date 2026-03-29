@@ -34,6 +34,15 @@ foreach ($f in $files) {
     }
 }
 
+# Deploy lib/ directory (modularized modules)
+$libSrc = Join-Path $src "lib"
+if (Test-Path $libSrc) {
+    $libDst = Join-Path $dst "lib"
+    Copy-Item $libSrc $libDst -Recurse -Force
+    $libCount = (Get-ChildItem $libDst -File).Count
+    Write-Host "[DEPLOY] lib/ ($libCount modules) -> $dst\lib"
+}
+
 # surv_008: Rename directory to match version if needed
 if ($dst -ne $targetPath -and -not (Test-Path $targetPath)) {
     Rename-Item $dst $targetPath
