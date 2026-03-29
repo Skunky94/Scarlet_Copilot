@@ -38,8 +38,10 @@ foreach ($f in $files) {
 $libSrc = Join-Path $src "lib"
 if (Test-Path $libSrc) {
     $libDst = Join-Path $dst "lib"
+    # Remove old lib/ to avoid nested directories (PowerShell Copy-Item quirk)
+    if (Test-Path $libDst) { Remove-Item $libDst -Recurse -Force }
     Copy-Item $libSrc $libDst -Recurse -Force
-    $libCount = (Get-ChildItem $libDst -File).Count
+    $libCount = (Get-ChildItem $libDst -Filter "*.js" -File).Count
     Write-Host "[DEPLOY] lib/ ($libCount modules) -> $dst\lib"
 }
 
