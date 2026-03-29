@@ -598,6 +598,19 @@ function readJsonSafe(filePath, fallback) {
     } catch { return fallback; }
 }
 
+// ─── Safe JSON Writer (atomic: temp file + rename) ──────────────────────────
+function writeJsonSafe(filePath, data) {
+    try {
+        const dir = path.dirname(filePath);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        const tmp = filePath + '.tmp';
+        fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf-8');
+        fs.renameSync(tmp, filePath);
+    } catch (e) {
+        console.log('[LOOP-GUARDIAN] Safe write error (' + path.basename(filePath) + '): ' + e.message);
+    }
+}
+
 function readAgentState() {
     const p = getStatePath();
     if (!p) return { ...DEFAULT_STATE };
@@ -608,13 +621,7 @@ function readAgentState() {
 function writeAgentState(state) {
     const p = getStatePath();
     if (!p) return;
-    try {
-        const dir = path.dirname(p);
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-        fs.writeFileSync(p, JSON.stringify(state, null, 2), 'utf-8');
-    } catch (e) {
-        console.log('[LOOP-GUARDIAN] State write error: ' + e.message);
-    }
+    writeJsonSafe(p, state);
 }
 
 // ─── Task Ledger Reader ──────────────────────────────────────────────────────
@@ -1144,7 +1151,7 @@ function readAndShiftBuffer() {
         if (!data.requests || data.requests.length === 0) return null;
 
         const request = data.requests.shift();
-        fs.writeFileSync(bufferPath, JSON.stringify(data, null, 2), 'utf-8');
+        writeJsonSafe(bufferPath, data);
         return request;
     } catch (e) {
         console.error('[LOOP-GUARDIAN] Buffer read error:', e.message);
@@ -1169,7 +1176,7 @@ function addToBuffer(text) {
         timestamp: Date.now(),
         submitted_at: new Date().toISOString()
     });
-    fs.writeFileSync(bufferPath, JSON.stringify(data, null, 2), 'utf-8');
+    writeJsonSafe(bufferPath, data);
 }
 
 function getBufferCount() {
@@ -1868,7 +1875,11 @@ function getWebviewHtml() {
     const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
     const entry = document.createElement('div');
     entry.className = 'log-entry';
-    entry.innerHTML = '<span class="time">' + time + '</span>' + text;
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'time';
+    timeSpan.textContent = time;
+    entry.appendChild(timeSpan);
+    entry.appendChild(document.createTextNode(text));
     logEl.prepend(entry);
     while (logEl.children.length > 50) logEl.lastChild.remove();
   }
@@ -1955,7 +1966,6 @@ function getCopilotChatDistDir() {
 // patchCopilotChat() calls it via child_process, passing auto-detected paths.
 
 async function patchCopilotChat() {
-    const { execSync } = require('child_process');
     if (!outputChannel) outputChannel = vscode.window.createOutputChannel('Loop Guardian');
     outputChannel.show(true);
     log('─── Patch Copilot Chat START ───');
@@ -1992,12 +2002,13 @@ async function patchCopilotChat() {
         log('Target: ' + extPath);
         log('Backup: ' + backupPath);
 
-        const cmd = 'powershell -ExecutionPolicy Bypass -File "' + scriptPath + '"'
-            + ' -Target "' + extPath + '"'
-            + ' -Backup "' + backupPath + '"'
-            + ' -PatchFile "' + path.join(root, 'prompt-patches', 'block-01-role.txt') + '"';
-
-        const output = execSync(cmd, {
+        const output = require('child_process').execFileSync('powershell', [
+            '-ExecutionPolicy', 'Bypass',
+            '-File', scriptPath,
+            '-Target', extPath,
+            '-Backup', backupPath,
+            '-PatchFile', path.join(root, 'prompt-patches', 'block-01-role.txt')
+        ], {
             encoding: 'utf-8',
             timeout: 30000,
             windowsHide: true
