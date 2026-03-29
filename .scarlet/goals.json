@@ -1,8 +1,8 @@
 {
     "schema_version":  "3.0.0",
-    "last_updated":  "2026-03-29T20:20:00Z",
+    "last_updated":  "2026-03-29T20:30:00Z",
     "near_impossible_goal":  "Autonomous persistent entity with eventual embodiment",
-    "notes":  "Goal graph v3 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Co-designed with GPT after full codebase review. Focus: robustezza runtime, qualitÃƒÆ’Ã‚Â  semantica, modularizzazione, crescita autonoma guidata.",
+    "notes":  "Goal graph v3 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Co-designed with GPT after full codebase review. Focus: robustezza runtime, qualitÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  semantica, modularizzazione, crescita autonoma guidata.",
     "layers":  [
                    {
                        "id":  "L0",
@@ -13,7 +13,7 @@
                                      {
                                          "id":  "sub_001",
                                          "title":  "Preserve Core Runtime Assumptions",
-                                         "description":  "Mantenere compatibilitÃƒÆ’Ã‚Â  con il loop agentico di Copilot Chat, la persistenza file-backed e il modello di patch runtime.",
+                                         "description":  "Mantenere compatibilitÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  con il loop agentico di Copilot Chat, la persistenza file-backed e il modello di patch runtime.",
                                          "priority":  "P0",
                                          "status":  "active",
                                          "dependencies":  [
@@ -21,22 +21,22 @@
                                                           ],
                                          "completion_criteria":  [
                                                                      "Le assunzioni di base sono documentate",
-                                                                     "Ogni refactor verifica la compatibilitÃƒÆ’Ã‚Â  col runtime attuale",
+                                                                     "Ogni refactor verifica la compatibilitÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  col runtime attuale",
                                                                      "Le dipendenze strutturali sono esplicite nella documentazione"
                                                                  ],
-                                         "notes":  "Non ÃƒÆ’Ã‚Â¨ un goal di cambiamento ma di vincolo."
+                                         "notes":  "Non ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ un goal di cambiamento ma di vincolo."
                                      }
                                  ]
                    },
                    {
                        "id":  "L1",
                        "title":  "Survival",
-                       "description":  "StabilitÃƒÆ’Ã‚Â  minima, persistenza, continuitÃƒÆ’Ã‚Â  del loop, prevenzione dei failure modes distruttivi.",
+                       "description":  "StabilitÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  minima, persistenza, continuitÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  del loop, prevenzione dei failure modes distruttivi.",
                        "goals":  [
                                      {
                                          "id":  "surv_001",
                                          "title":  "Maintain Infinite Persistence Loop",
-                                         "description":  "Preservare la continuitÃƒÆ’Ã‚Â  del loop senza termination indesiderate.",
+                                         "description":  "Preservare la continuitÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  del loop senza termination indesiderate.",
                                          "priority":  "P0",
                                          "status":  "done",
                                          "artifact":  "extension.js (Loop Guardian)",
@@ -71,7 +71,7 @@
                                          "description":  "Rendere robuste le letture/scritture di file di stato, ledger, buffer e report.",
                                          "priority":  "P0",
                                          "status":  "done",
-                                         "artifact":  "extension.js writeJsonSafe() ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â atomic temp+rename",
+                                         "artifact":  "extension.js writeJsonSafe() ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â atomic temp+rename",
                                          "dependencies":  [
 
                                                           ],
@@ -88,7 +88,7 @@
                                          "description":  "Impedire patch parziali o incoerenti dell\u0027upstream Copilot Chat.",
                                          "priority":  "P1",
                                          "status":  "done",
-                                         "artifact":  "apply-patch.ps1 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â fail-hard exit 2, syntax check, auto-revert. Commit 5b74831.",
+                                         "artifact":  "apply-patch.ps1 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â fail-hard exit 2, syntax check, auto-revert. Commit 5b74831.",
                                          "dependencies":  [
 
                                                           ],
@@ -119,7 +119,7 @@
                                          "description":  "Eliminare rischi di injection/XSS nel pannello WebView.",
                                          "priority":  "P0",
                                          "status":  "done",
-                                         "artifact":  "extension.js addLog() ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â textContent/DOM API",
+                                         "artifact":  "extension.js addLog() ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â textContent/DOM API",
                                          "dependencies":  [
 
                                                           ],
@@ -136,7 +136,7 @@
                                          "description":  "Sostituire command string fragile con invocazione argomentata del patcher.",
                                          "priority":  "P0",
                                          "status":  "done",
-                                         "artifact":  "extension.js patchCopilotChat() ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â execFileSync with array args",
+                                         "artifact":  "extension.js patchCopilotChat() ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â execFileSync with array args",
                                          "dependencies":  [
 
                                                           ],
@@ -145,7 +145,7 @@
                                                                      "Nessun quoting manuale di path nella command string",
                                                                      "Gestione errori e stdout/stderr preservata"
                                                                  ],
-                                         "notes":  "FIXED commit bce3738. execSync(cmdString) ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ execFileSync(\u0027powershell\u0027, [...args]). 2026-03-29."
+                                         "notes":  "FIXED commit bce3738. execSync(cmdString) ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ execFileSync(\u0027powershell\u0027, [...args]). 2026-03-29."
                                      },
                                      {
                                          "id":  "surv_008",
@@ -174,12 +174,12 @@
                    {
                        "id":  "L2",
                        "title":  "Cognition",
-                       "description":  "Inferenza di stato, verifica, drift detection, qualitÃƒÆ’Ã‚Â  delle metriche, introspezione operativa.",
+                       "description":  "Inferenza di stato, verifica, drift detection, qualitÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  delle metriche, introspezione operativa.",
                        "goals":  [
                                      {
                                          "id":  "cog_001",
                                          "title":  "Refine Triple State Model",
-                                         "description":  "Rendere declared/inferred/effective piÃƒÆ’Ã‚Â¹ spiegabile e meno dipendente da tregue temporali arbitrarie.",
+                                         "description":  "Rendere declared/inferred/effective piÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¹ spiegabile e meno dipendente da tregue temporali arbitrarie.",
                                          "priority":  "P1",
                                          "status":  "done",
                                          "dependencies":  [
@@ -212,14 +212,14 @@
                                          "description":  "Sostituire la metrica closureRatio con una metrica discreta di avanzamento reale.",
                                          "priority":  "P1",
                                          "status":  "done",
-                                         "artifact":  "extension.js v2.11 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â progressEventScore replaces closureRatio, detectProgressEvent(), discrete scoring.",
+                                         "artifact":  "extension.js v2.11 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â progressEventScore replaces closureRatio, detectProgressEvent(), discrete scoring.",
                                          "dependencies":  [
 
                                                           ],
                                          "completion_criteria":  [
                                                                      "closureRatio rimosso dal drift detector",
                                                                      "progressEventScore implementato",
-                                                                     "Il repair loop non viene piÃƒÆ’Ã‚Â¹ innescato da step changes troppo rari"
+                                                                     "Il repair loop non viene piÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¹ innescato da step changes troppo rari"
                                                                  ]
                                      },
                                      {
@@ -228,7 +228,7 @@
                                          "description":  "Classificare correttamente i browser tools come verify-like, execute-like o ambiguous.",
                                          "priority":  "P1",
                                          "status":  "done",
-                                         "artifact":  "extension.js v2.11 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â BROWSER_VERIFY_TOOLS, BROWSER_EXECUTE_TOOLS, classifyPlaywrightCode() with ambiguous.",
+                                         "artifact":  "extension.js v2.11 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â BROWSER_VERIFY_TOOLS, BROWSER_EXECUTE_TOOLS, classifyPlaywrightCode() with ambiguous.",
                                          "dependencies":  [
 
                                                           ],
@@ -244,7 +244,7 @@
                                          "description":  "Classificare run_in_terminal in base al comando reale, non solo al nome tool.",
                                          "priority":  "P1",
                                          "status":  "done",
-                                         "artifact":  "extension.js v2.11 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â classifyTerminalCommand() with verify/execute/ambiguous patterns.",
+                                         "artifact":  "extension.js v2.11 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â classifyTerminalCommand() with verify/execute/ambiguous patterns.",
                                          "dependencies":  [
                                                               "cog_004"
                                                           ],
@@ -257,10 +257,10 @@
                                      {
                                          "id":  "cog_006",
                                          "title":  "Split Drift from Phantom Failure",
-                                         "description":  "Separare la failure class phantom dal detector di qualitÃƒÆ’Ã‚Â  generale.",
+                                         "description":  "Separare la failure class phantom dal detector di qualitÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  generale.",
                                          "priority":  "P1",
                                          "status":  "done",
-                                         "artifact":  "extension.js v2.11 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â PHANTOM tracker separate, phantomOnly rounds excluded from DRIFT.",
+                                         "artifact":  "extension.js v2.11 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â PHANTOM tracker separate, phantomOnly rounds excluded from DRIFT.",
                                          "dependencies":  [
                                                               "surv_002"
                                                           ],
@@ -315,7 +315,7 @@
                                          "completion_criteria":  [
                                                                      "isMeaningfulDecision implementata",
                                                                      "Boilerplate/bookkeeping non resetta il counter",
-                                                                     "Block declaration non ÃƒÆ’Ã‚Â¨ escape hatch banale"
+                                                                     "Block declaration non ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ escape hatch banale"
                                                                  ]
                                      },
                                      {
@@ -336,7 +336,7 @@
                                      {
                                          "id":  "cog_011",
                                          "title":  "Activate Reflexion in Production",
-                                         "description":  "Portare reflections.jsonl da capacitÃƒÆ’Ã‚Â  teorica a sistema operativo verificato.",
+                                         "description":  "Portare reflections.jsonl da capacitÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  teorica a sistema operativo verificato.",
                                          "priority":  "P1",
                                          "status":  "pending",
                                          "dependencies":  [
@@ -346,7 +346,7 @@
                                          "completion_criteria":  [
                                                                      "Almeno 10 reflection entries reali raccolte",
                                                                      "Le reflection compaiono nei prompt successivi",
-                                                                     "ÃƒÆ’Ã‹â€  misurabile un effetto sul comportamento"
+                                                                     "ÃƒÆ’Ã†â€™Ãƒâ€¹Ã¢â‚¬Â  misurabile un effetto sul comportamento"
                                                                  ]
                                      },
                                      {
@@ -360,7 +360,7 @@
                                                           ],
                                          "completion_criteria":  [
                                                                      "metrics.jsonl include state triad nei punti critici",
-                                                                     "Ogni override ÃƒÆ’Ã‚Â¨ spiegabile",
+                                                                     "Ogni override ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ spiegabile",
                                                                      "I mismatch sono analizzabili offline"
                                                                  ]
                                      },
@@ -376,12 +376,12 @@
                    {
                        "id":  "L3",
                        "title":  "Autonomy",
-                       "description":  "CapacitÃƒÆ’Ã‚Â  di continuare, scegliere, consultare, riflettere e proseguire senza dipendere da input esterno costante.",
+                       "description":  "CapacitÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  di continuare, scegliere, consultare, riflettere e proseguire senza dipendere da input esterno costante.",
                        "goals":  [
                                      {
                                          "id":  "auto_001",
                                          "title":  "Continuation Gate Semantic Promotion",
-                                         "description":  "Far sÃƒÆ’Ã‚Â¬ che il gate promuova davvero task dal backlog invece di limitarsi a nudgiare.",
+                                         "description":  "Far sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¬ che il gate promuova davvero task dal backlog invece di limitarsi a nudgiare.",
                                          "priority":  "P1",
                                          "status":  "done",
                                          "dependencies":  [
@@ -414,7 +414,7 @@
                                          "description":  "Usare GPT come architetto dei goal, revisore di drift e reality-check.",
                                          "priority":  "P1",
                                          "status":  "done",
-                                         "artifact":  "Persistent chat operational ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â full codebase review + goal architecture delivered 2026-03-29",
+                                         "artifact":  "Persistent chat operational ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â full codebase review + goal architecture delivered 2026-03-29",
                                          "dependencies":  [
 
                                                           ],
@@ -442,7 +442,7 @@
                                      {
                                          "id":  "auto_005",
                                          "title":  "Idle Without Theater",
-                                         "description":  "Rendere l\u0027idle una modalitÃƒÆ’Ã‚Â  di lavoro reale, non narrazione o framework generation automatica.",
+                                         "description":  "Rendere l\u0027idle una modalitÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  di lavoro reale, non narrazione o framework generation automatica.",
                                          "priority":  "P1",
                                          "status":  "pending",
                                          "dependencies":  [
@@ -452,7 +452,7 @@
                                          "completion_criteria":  [
                                                                      "Idle tasks concreti definiti",
                                                                      "Meno output meta-descrittivo in idle",
-                                                                     "PiÃƒÆ’Ã‚Â¹ audit, review, consultazione, journaling strutturato"
+                                                                     "PiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¹ audit, review, consultazione, journaling strutturato"
                                                                  ]
                                      },
                                      {
@@ -465,7 +465,7 @@
                                                               "cog_009"
                                                           ],
                                          "completion_criteria":  [
-                                                                     "Block declaration non puÃƒÆ’Ã‚Â² ripetersi in loop",
+                                                                     "Block declaration non puÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â² ripetersi in loop",
                                                                      "Ogni blocco ha causa verificabile",
                                                                      "Ogni blocco ha fallback o richiesta esterna chiara"
                                                                  ]
@@ -473,16 +473,16 @@
                                      {
                                          "id":  "auto_007",
                                          "title":  "Goal-Driven Idle Selection",
-                                         "description":  "In idle scegliere task da goals/backlog con prioritÃƒÆ’Ã‚Â  strutturata.",
+                                         "description":  "In idle scegliere task da goals/backlog con prioritÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  strutturata.",
                                          "priority":  "P2",
-                                         "status":  "pending",
+                                         "status":  "done",
                                          "dependencies":  [
                                                               "auto_005"
                                                           ],
                                          "completion_criteria":  [
                                                                      "Idle selection legge i layer goals",
-                                                                     "Viene scelto il goal piÃƒÆ’Ã‚Â¹ coerente non completato",
-                                                                     "Il selection reason ÃƒÆ’Ã‚Â¨ loggato"
+                                                                     "Viene scelto il goal piÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¹ coerente non completato",
+                                                                     "Il selection reason ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨ loggato"
                                                                  ]
                                      },
                                      {
@@ -543,7 +543,7 @@
                                                           ],
                                          "completion_criteria":  [
                                                                      "Thresholds non sparsi nel codice",
-                                                                     "PossibilitÃƒÆ’Ã‚Â  di tuning senza refactor globale",
+                                                                     "PossibilitÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  di tuning senza refactor globale",
                                                                      "Policy table documentata"
                                                                  ]
                                      },
@@ -605,13 +605,13 @@
                                          "completion_criteria":  [
                                                                      "Hook patterns verificati automaticamente",
                                                                      "Fail-fast su target non compatibili",
-                                                                     "Report di compatibilitÃƒÆ’Ã‚Â  riproducibile"
+                                                                     "Report di compatibilitÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  riproducibile"
                                                                  ]
                                      },
                                      {
                                          "id":  "exp_007",
                                          "title":  "WebSocket or REST Control API",
-                                         "description":  "Esporre un canale di comunicazione esterno piÃƒÆ’Ã‚Â¹ pulito del solo file buffer/WebView.",
+                                         "description":  "Esporre un canale di comunicazione esterno piÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¹ pulito del solo file buffer/WebView.",
                                          "priority":  "P2",
                                          "status":  "pending",
                                          "dependencies":  [
@@ -682,7 +682,7 @@
                                      {
                                          "id":  "idle_001",
                                          "title":  "Periodic Self-Evaluation",
-                                         "description":  "Valutare periodicamente qualitÃƒÆ’Ã‚Â  del lavoro, drift, mismatch, autonomia e repair time.",
+                                         "description":  "Valutare periodicamente qualitÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  del lavoro, drift, mismatch, autonomia e repair time.",
                                          "priority":  "P1",
                                          "status":  "pending",
                                          "dependencies":  [
@@ -736,7 +736,7 @@
                                          "completion_criteria":  [
                                                                      "Audit periodico del DNA",
                                                                      "Ridondanze identificate",
-                                                                     "Prompt piÃƒÆ’Ã‚Â¹ corto e piÃƒÆ’Ã‚Â¹ fondativo"
+                                                                     "Prompt piÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¹ corto e piÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¹ fondativo"
                                                                  ]
                                      },
                                      {
@@ -804,7 +804,7 @@
                                      {
                                          "id":  "idle_009",
                                          "title":  "Metric Validity Review",
-                                         "description":  "Rivedere se le metriche misurano davvero ciÃƒÆ’Ã‚Â² che conta o solo proxy comodi.",
+                                         "description":  "Rivedere se le metriche misurano davvero ciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â² che conta o solo proxy comodi.",
                                          "priority":  "P1",
                                          "status":  "pending",
                                          "dependencies":  [
@@ -836,7 +836,7 @@
                                      {
                                          "id":  "idle_011",
                                          "title":  "Consultation Mode Prioritization",
-                                         "description":  "Raffinare i modi A-D di consultazione GPT e la loro prioritÃƒÆ’Ã‚Â  in base ai risultati reali.",
+                                         "description":  "Raffinare i modi A-D di consultazione GPT e la loro prioritÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  in base ai risultati reali.",
                                          "priority":  "P2",
                                          "status":  "pending",
                                          "dependencies":  [
@@ -978,7 +978,7 @@
                                                ],
                            "notes":  [
                                          "Prima rendere il runtime meno rompibile, poi migliorare detectors e inferenza, poi modularizzare.",
-                                         "Reflexion, journaling e self-evaluation hanno senso pieno solo dopo metriche/log piÃƒÆ’Ã‚Â¹ affidabili.",
+                                         "Reflexion, journaling e self-evaluation hanno senso pieno solo dopo metriche/log piÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¹ affidabili.",
                                          "Le API esterne e l\u0027embodiment vanno dopo modularizzazione, logging strutturato e persistence layer robusto."
                                      ]
                        }

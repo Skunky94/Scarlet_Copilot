@@ -1,32 +1,27 @@
 {
     "current_task":  {
-                         "id":  "int_026",
-                         "started_at":  "2026-03-29T20:05:00Z",
-                         "source":  "goals-v3-critical-path",
-                         "priority":  "P1",
+                         "id":  "int_027",
+                         "started_at":  "2026-03-29T20:22:00Z",
+                         "source":  "goals-v3",
+                         "priority":  "P2",
                          "steps":  [
                                        {
                                            "status":  "done",
-                                           "title":  "writeTaskLedger + promoteNextBacklogItem",
+                                           "title":  "getNextActionableGoal()",
                                            "id":  "s1"
                                        },
                                        {
                                            "status":  "done",
-                                           "title":  "Modify injectContinuationGate for promotion",
+                                           "title":  "Inject into idle cycle",
                                            "id":  "s2"
                                        },
                                        {
                                            "status":  "done",
-                                           "title":  "Prevent equilibrium with pending backlog",
+                                           "title":  "Syntax + deploy + commit",
                                            "id":  "s3"
-                                       },
-                                       {
-                                           "status":  "done",
-                                           "title":  "Syntax check + deploy + commit",
-                                           "id":  "s4"
                                        }
                                    ],
-                         "title":  "auto_001: Continuation Gate Semantic Promotion",
+                         "title":  "auto_007: Goal-Driven Idle Selection",
                          "status":  "done"
                      },
     "completed_tasks":  [
@@ -100,7 +95,7 @@
                              }
                          ],
     "stats":  {
-                  "total_completed":  23,
+                  "total_completed":  24,
                   "total_abandoned":  0
               }
 }
