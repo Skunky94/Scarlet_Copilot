@@ -3047,3 +3047,38 @@ function deactivate() {
 }
 
 module.exports = { activate, deactivate };
+
+// ─── Test Exports (exp_005) ──────────────────────────────────────────────────
+// Expose internals only when SCARLET_TEST env var is set, for automated testing.
+if (process.env.SCARLET_TEST) {
+    module.exports.__test = {
+        POLICY, METRICS, ROLLING, DRIFT, PHANTOM, STATE_MODEL, VERIFICATION,
+        cfg, getWorkspaceRoot, getBufferPath, sleep,
+        pushRollingRound, isPhantomToolCall, isPhantomOnlyRound, isPhantomDominantRound,
+        pushDriftRound, computeQualityDrift, enterRepairState, exitRepairState,
+        classifyTerminalCommand, classifyPlaywrightCode, detectProgressEvent,
+        inferStateFromToolCalls, resolveEffectiveState, getCurrentTaskSnapshot,
+        shouldOperationalNudge, shouldMetaNudge, selectIdleTask,
+        readJsonSafe, writeJsonSafe, logEvent, buildMetricsLine,
+        WRITE_TOOLS, VERIFY_TOOLS, META_TOOLS, BROWSER_TOOLS,
+        IDLE_TASK_LIBRARY, IDLE_TASK_HISTORY,
+        resetDriftWindow: () => {
+            DRIFT.roundsInWindow = 0; DRIFT.validRoundsInWindow = 0;
+            DRIFT.verificationEvidenceRounds = 0; DRIFT.depthEvidenceCount = 0;
+            DRIFT.totalRealToolCalls = 0; DRIFT.progressEvents = 0;
+            DRIFT.lastProgressSnapshot = null; DRIFT.stableStateRounds = 0;
+            DRIFT.stateOscillationCount = 0; DRIFT.lastEffectiveState = null;
+            DRIFT.browserWorkflowRounds = 0; DRIFT.gptConsultationRounds = 0;
+            DRIFT.consecutiveBadWindows = 0; DRIFT.inRepair = false;
+            DRIFT.repairRoundsElapsed = 0; DRIFT.repairNudgeCooldown = 0;
+            PHANTOM.phantomOnlyRoundsWindow = 0; PHANTOM.phantomDominantRoundsWindow = 0;
+            PHANTOM.consecutivePhantomOnlyRounds = 0; PHANTOM.recentPhantomBurst = false;
+        },
+        resetRolling: () => { ROLLING.lastRounds.length = 0; ROLLING.productivityScore = 1.0; ROLLING.phantomRatioAvg = 0; },
+        resetStateModel: () => {
+            STATE_MODEL.declared = 'idle_active'; STATE_MODEL.inferred = 'idle_active';
+            STATE_MODEL.effective = 'idle_active'; STATE_MODEL.confidence = 0.0;
+            STATE_MODEL.inferredConsistency = 0; STATE_MODEL.declaredStateAt = 0;
+        }
+    };
+}

@@ -1,5 +1,15 @@
 {
-  "current_task": null,
+  "current_task": {
+    "id": "exp_005",
+    "title": "Automated Test Suite",
+    "started_at": "2026-03-29T19:23:24.408Z",
+    "steps": [
+      "setup",
+      "write-tests",
+      "run-tests",
+      "commit"
+    ]
+  },
   "completed_tasks": [
     {
       "id": "int_021",
