@@ -208,7 +208,7 @@ const STATE_MODEL = {
     effective: 'idle_active',
     confidence: 0.0,
     inferredConsistency: 0,        // consecutive rounds same inferred state
-    declaredFreshRounds: 0,        // how long declared state remains fresh
+    declaredStateAt: 0,            // timestamp of last explicit declared state (v2.12: replaces declaredFreshRounds)
     lastEffectiveChangeAt: 0
 };
 
@@ -964,19 +964,25 @@ function resolveEffectiveState({ agentState, inferredState, inRepair, ledgerSnap
         STATE_MODEL.inferredConsistency = 1;
     }
 
-    // Fresh declared state tracking
+    // Fresh declared state tracking (v2.12: timestamp-based, cog_002)
+    // Freshness decays with time, not round count. Explicit declarations refresh it.
     if (agentState.last_transition_reason && agentState.last_transition_reason !== 'inferred_from_tools') {
-        STATE_MODEL.declaredFreshRounds = Math.min(5, STATE_MODEL.declaredFreshRounds + 1);
-    } else {
-        STATE_MODEL.declaredFreshRounds = Math.max(0, STATE_MODEL.declaredFreshRounds - 1);
+        STATE_MODEL.declaredStateAt = Date.now();
     }
+    const declaredAgeMs = Date.now() - (STATE_MODEL.declaredStateAt || 0);
+    const FRESH_THRESHOLD_MS = 15000;  // 15s: full freshness
+    const STALE_THRESHOLD_MS = 45000;  // 45s: completely stale
+    const declaredFreshness =
+        declaredAgeMs <= FRESH_THRESHOLD_MS ? 1.0 :
+        declaredAgeMs >= STALE_THRESHOLD_MS ? 0.0 :
+        1.0 - ((declaredAgeMs - FRESH_THRESHOLD_MS) / (STALE_THRESHOLD_MS - FRESH_THRESHOLD_MS));
 
     // Confidence scoring
     let declaredConfidence = 0;
     let inferredConfidence = 0;
 
-    // Declared state confidence
-    if (STATE_MODEL.declaredFreshRounds > 0) declaredConfidence += 0.4;
+    // Declared state confidence (v2.12: uses temporal freshness)
+    if (declaredFreshness > 0.3) declaredConfidence += 0.4 * declaredFreshness;
     if (ledgerSnapshot && ledgerSnapshot.taskId && declaredState === 'executing') declaredConfidence += 0.2;
     if ((!ledgerSnapshot || !ledgerSnapshot.taskId) && (declaredState === 'planning' || declaredState === 'reflecting')) declaredConfidence += 0.2;
 
@@ -1375,15 +1381,21 @@ async function onLoopCheck(roundData, loopInstance) {
         }
 
         // ── Structural change detection (trigger #4) ──
-        // If write tools target critical architecture files, nudge GPT pre-change review
-        const STRUCTURAL_FILES = ['extension.js', 'apply-patch.ps1', 'idle-cycle.txt',
-                                  'block-01-role.txt', 'agent_state.json', 'goals.json'];
+        // Split: code changes vs config changes. Only code changes count for Decision Collapse.
+        // Both count for GPT pre-change review trigger.
+        const CODE_FILES = ['extension.js', 'apply-patch.ps1', 'block-01-role.txt'];
+        const CONFIG_FILES = ['agent_state.json', 'goals.json', 'idle-cycle.txt'];
+        const STRUCTURAL_FILES = [...CODE_FILES, ...CONFIG_FILES];
         let isStructuralChange = false;
+        let isCodeChange = false;
         for (const tc of roundData.round.toolCalls) {
             if (WRITE_TOOLS.includes(tc.name)) {
                 const args = tc.arguments || '';
                 if (STRUCTURAL_FILES.some(f => args.includes(f))) {
                     isStructuralChange = true;
+                    if (CODE_FILES.some(f => args.includes(f))) {
+                        isCodeChange = true;
+                    }
                     break;
                 }
             }
@@ -1411,10 +1423,12 @@ async function onLoopCheck(roundData, loopInstance) {
         const ledger = ledgerPath ? readJsonSafe(ledgerPath, null) : null;
         const ledgerSnapshot = getCurrentTaskSnapshot(ledger);
 
-        // ── Decision Collapse: track meaningful state changes (v2.9.0) ──
+        // ── Decision Collapse: track meaningful state changes (v2.9.0, v2.12: cog_009 fix) ──
+        // Only code changes and task-level ledger changes count as decisions.
+        // Config bookkeeping (goals.json status, agent_state) does NOT reset the counter.
         ROLLING.roundsSinceLastDecision++;
         let isDecision = false;
-        if (isStructuralChange) isDecision = true;
+        if (isCodeChange) isDecision = true;
         if (ledgerModified && ledger && ledger.current_task) {
             const newId = ledger.current_task.id;
             const newStatus = ledger.current_task.status;

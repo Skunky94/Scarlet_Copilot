@@ -75,7 +75,8 @@
           "title": "Fail Hard on Patch Incompatibility",
           "description": "Impedire patch parziali o incoerenti dell'upstream Copilot Chat.",
           "priority": "P1",
-          "status": "pending",
+          "status": "done",
+          "artifact": "apply-patch.ps1 — fail-hard exit 2, syntax check, auto-revert. Commit 5b74831.",
           "dependencies": [],
           "completion_criteria": [
             "apply-patch.ps1 verifica tutti i marker critici",
@@ -184,7 +185,8 @@
           "title": "Replace Closure Ratio with Progress Event Score",
           "description": "Sostituire la metrica closureRatio con una metrica discreta di avanzamento reale.",
           "priority": "P1",
-          "status": "active",
+          "status": "done",
+          "artifact": "extension.js v2.11 — progressEventScore replaces closureRatio, detectProgressEvent(), discrete scoring.",
           "dependencies": [],
           "completion_criteria": [
             "closureRatio rimosso dal drift detector",
@@ -197,7 +199,8 @@
           "title": "Browser-Aware State Inference",
           "description": "Classificare correttamente i browser tools come verify-like, execute-like o ambiguous.",
           "priority": "P1",
-          "status": "active",
+          "status": "done",
+          "artifact": "extension.js v2.11 — BROWSER_VERIFY_TOOLS, BROWSER_EXECUTE_TOOLS, classifyPlaywrightCode() with ambiguous.",
           "dependencies": [],
           "completion_criteria": [
             "read_page/screenshot_page classificati verify",
@@ -210,7 +213,8 @@
           "title": "Terminal Semantic Classification",
           "description": "Classificare run_in_terminal in base al comando reale, non solo al nome tool.",
           "priority": "P1",
-          "status": "pending",
+          "status": "done",
+          "artifact": "extension.js v2.11 — classifyTerminalCommand() with verify/execute/ambiguous patterns.",
           "dependencies": ["cog_004"],
           "completion_criteria": [
             "Commandi verify-like rilevati",
@@ -223,7 +227,8 @@
           "title": "Split Drift from Phantom Failure",
           "description": "Separare la failure class phantom dal detector di qualità generale.",
           "priority": "P1",
-          "status": "active",
+          "status": "done",
+          "artifact": "extension.js v2.11 — PHANTOM tracker separate, phantomOnly rounds excluded from DRIFT.",
           "dependencies": ["surv_002"],
           "completion_criteria": [
             "Phantom rounds non contribuiscono al drift score normale",
