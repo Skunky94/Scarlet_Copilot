@@ -1847,6 +1847,18 @@ const IDLE_TASK_LIBRARY = [
             '→ Scan for: path traversal, injection, unbounded reads, info exposure\n' +
             '→ If new issues found: fix immediately and update the audit document.\n' +
             '→ If clean: note the audit timestamp in the document.'
+    },
+    {
+        id: 'prompt_dna_review',
+        label: 'Review prompt DNA',
+        cooldownMs: 7200000, // 2 hours
+        priority: () => 0.35,
+        directive: () =>
+            'PROMPT DNA REVIEW (idle_004): Review prompt-patches/block-01-role.txt.\n' +
+            '→ Check coherence with current architecture (state machine, goals, idle tasks)\n' +
+            '→ Identify redundancies or contradictions\n' +
+            '→ If compression possible, apply changes and commit\n' +
+            '→ If coherent, note review date in .scarlet/prompt-dna-review.md'
     }
 ];
 
