@@ -113,6 +113,7 @@ const METRICS = {
     activatedAt: null,
     state: 'Idle',       // Executing | Verifying | Planning | IdleActive | Reflecting | Equilibrium | Cooling | Polling | RateLimited
     toolCalls: 0,
+    totalRounds: 0,       // idle_009: total loop rounds for metrics review
     messagesDelivered: 0,
     idleCycles: 0,
     idleLifeTriggers: 0,
@@ -2086,6 +2087,7 @@ async function onLoopCheck(roundData, loopInstance) {
         const realCount = callNames.length - phantomCount;
 
         METRICS.toolCalls += callNames.length;
+        METRICS.totalRounds++;  // idle_009: track total rounds
         logRoundMetrics(roundData, 'round');
 
         // Update rolling metrics
