@@ -1,5 +1,16 @@
 {
-  "current_task": null,
+  "current_task": {
+    "id": "exp_010",
+    "title": "Workspace-Safe Persistence Layer",
+    "started_at": "2026-03-29T19:34:07.306Z",
+    "steps": [
+      "audit-paths",
+      "add-storage-context",
+      "create-persistence-api",
+      "test",
+      "commit"
+    ]
+  },
   "completed_tasks": [
     {
       "id": "int_021",

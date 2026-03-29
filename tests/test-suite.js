@@ -455,9 +455,25 @@ suite('Buffer Path Security', () => {
         assert.ok(p, 'Buffer path should not be null');
         assert.ok(p.includes('.scarlet'), 'Should contain .scarlet: ' + p);
     });
+});
 
-    // Note: path traversal test requires mocking cfg() — tested indirectly via
-    // the path.resolve + startsWith guard in getBufferPath()
+suite('Workspace-Safe Persistence', () => {
+    test('getScarletDir returns valid directory', () => {
+        const dir = T.getScarletDir();
+        assert.ok(dir, 'Scarlet dir should not be null');
+        assert.ok(dir.includes('.scarlet'), 'Should include .scarlet');
+    });
+
+    test('scarletPath resolves filenames', () => {
+        const p = T.scarletPath('test_file.json');
+        assert.ok(p, 'Should resolve path');
+        assert.ok(p.endsWith('test_file.json'), 'Should end with filename');
+        assert.ok(p.includes('.scarlet'), 'Should be within .scarlet');
+    });
+
+    test('STORAGE defaults to workspace .scarlet/', () => {
+        assert.ok(!T.STORAGE._useGlobal, 'Should not use global storage by default');
+    });
 });
 
 suite('Tool Constants', () => {

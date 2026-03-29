@@ -97,6 +97,37 @@ function getWorkspaceRoot() {
     return folders && folders.length ? folders[0].uri.fsPath : null;
 }
 
+// ─── Workspace-Safe Persistence (exp_010) ────────────────────────────────────
+// Centralizes all .scarlet/ path resolution. Defaults to workspace root.
+// Can be redirected to context.globalStorageUri via initStorage() in activate().
+
+const STORAGE = {
+    _dir: null,     // cached resolved directory
+    _useGlobal: false
+};
+
+function initStorage(context) {
+    if (context && context.globalStorageUri && cfg('useGlobalStorage')) {
+        STORAGE._dir = context.globalStorageUri.fsPath;
+        STORAGE._useGlobal = true;
+    }
+}
+
+function getScarletDir() {
+    if (STORAGE._dir) return STORAGE._dir;
+    const root = getWorkspaceRoot();
+    if (!root) return null;
+    STORAGE._dir = path.join(root, '.scarlet');
+    return STORAGE._dir;
+}
+
+function scarletPath(filename) {
+    const dir = getScarletDir();
+    if (!dir) return null;
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    return path.join(dir, filename);
+}
+
 function getBufferPath() {
     const root = getWorkspaceRoot();
     if (!root) return null;
@@ -105,7 +136,7 @@ function getBufferPath() {
     const resolved = path.resolve(root, bufferFile);
     if (!resolved.startsWith(root)) {
         console.warn('[LOOP-GUARDIAN] Buffer path traversal blocked: ' + bufferFile);
-        return path.join(root, '.scarlet', 'daemon_buffer.json');
+        return scarletPath('daemon_buffer.json');
     }
     return resolved;
 }
@@ -188,8 +219,7 @@ const REFLEXION = {
 };
 
 function getReflectionsPath() {
-    const root = getWorkspaceRoot();
-    return root ? path.join(root, '.scarlet', REFLEXION.REFLECTION_FILE) : null;
+    return scarletPath(REFLEXION.REFLECTION_FILE);
 }
 
 function loadRecentReflections(n) {
@@ -401,8 +431,7 @@ const TASK_TRACKER = {
 // ─── v2.11 Helper Functions ──────────────────────────────────────────────────
 
 function getLedgerPath() {
-    const root = getWorkspaceRoot();
-    return root ? path.join(root, '.scarlet', 'task_ledger.json') : null;
+    return scarletPath('task_ledger.json');
 }
 
 function getCurrentTaskSnapshot(ledger) {
@@ -622,10 +651,10 @@ function computeQualityDrift() {
     const shouldRepair = DRIFT.consecutiveBadWindows >= DRIFT.BAD_WINDOWS_TRIGGER;
 
     // Log drift check to both legacy metrics.jsonl and structured events (exp_003)
-    const root = getWorkspaceRoot();
-    if (root) {
+    const metricsLegacyPath = scarletPath('metrics.jsonl');
+    if (metricsLegacyPath) {
         try {
-            const metricsPath = path.join(root, '.scarlet', 'metrics.jsonl');
+            const metricsPath = metricsLegacyPath;
             const entry = {
                 ts: new Date().toISOString(),
                 event: 'drift_check',
@@ -916,8 +945,7 @@ const DEFAULT_STATE = {
 };
 
 function getStatePath() {
-    const root = getWorkspaceRoot();
-    return root ? path.join(root, '.scarlet', 'agent_state.json') : null;
+    return scarletPath('agent_state.json');
 }
 
 // ─── Safe JSON Reader (BOM strip + safe parse + fallback) ────────────────────
@@ -964,9 +992,8 @@ function writeAgentState(state) {
 // ─── cog_012: State Audit Logging ────────────────────────────────────────────
 // Appends a JSONL entry for every state transition for post-mortem debugging.
 function logStateAudit(prev, next) {
-    const root = getWorkspaceRoot();
-    if (!root) return;
-    const auditPath = path.join(root, '.scarlet', 'state_audit.jsonl');
+    const auditPath = scarletPath('state_audit.jsonl');
+    if (!auditPath) return;
     const entry = {
         ts: new Date().toISOString(),
         from: prev.state,
@@ -985,16 +1012,14 @@ function logStateAudit(prev, next) {
 // ─── Task Ledger Reader ──────────────────────────────────────────────────────
 
 function readTaskLedger() {
-    const root = getWorkspaceRoot();
-    if (!root) return null;
-    const p = path.join(root, '.scarlet', 'task_ledger.json');
+    const p = scarletPath('task_ledger.json');
+    if (!p) return null;
     return readJsonSafe(p, null);
 }
 
 function writeTaskLedger(ledger) {
-    const root = getWorkspaceRoot();
-    if (!root) return false;
-    const p = path.join(root, '.scarlet', 'task_ledger.json');
+    const p = scarletPath('task_ledger.json');
+    if (!p) return false;
     writeJsonSafe(p, ledger);
     return true;
 }
@@ -1519,12 +1544,10 @@ const LOG_CONFIG = {
 };
 
 function logEvent(subsystem, event, data) {
-    const root = getWorkspaceRoot();
-    if (!root) return;
     if (!LOG_CONFIG.logPath) {
-        const dir = path.join(root, '.scarlet');
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-        LOG_CONFIG.logPath = path.join(dir, 'events.jsonl');
+        const p = scarletPath('events.jsonl');
+        if (!p) return;
+        LOG_CONFIG.logPath = p;
     }
     const entry = {
         ts: new Date().toISOString(),
@@ -1556,15 +1579,9 @@ function rotateLogIfNeeded() {
 // ─── Metrics Logger (persistent) ─────────────────────────────────────────────
 
 function logRoundMetrics(roundData, eventType) {
-    const root = getWorkspaceRoot();
-    if (!root) {
-        METRICS.metricsSkipped++;
-        return;
-    }
-    const metricsPath = path.join(root, '.scarlet', 'metrics.jsonl');
+    const metricsPath = scarletPath('metrics.jsonl');
+    if (!metricsPath) { METRICS.metricsSkipped++; return; }
     try {
-        const dir = path.dirname(metricsPath);
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
         const toolCallNames = (roundData.round.toolCalls || []).map(tc => tc.name || 'unknown');
         const entry = {
@@ -1592,7 +1609,7 @@ function logRoundMetrics(roundData, eventType) {
         console.log('[LOOP-GUARDIAN] Metrics write error: ' + e.message);
         // Diagnostic: write error to separate file for debug when console inaccessible
         try {
-            const errPath = path.join(root, '.scarlet', 'metrics-errors.log');
+            const errPath = scarletPath('metrics-errors.log');
             fs.appendFileSync(errPath, new Date().toISOString() + ' ' + e.message + '\n', 'utf-8');
         } catch (_) {}
     }
@@ -1603,9 +1620,8 @@ function logRoundMetrics(roundData, eventType) {
 // Reviewed periodically by the idle task for outcome validation.
 
 function logDecision(context, alternatives, chosen, rationale, confidence) {
-    const root = getWorkspaceRoot();
-    if (!root) return;
-    const journalPath = path.join(root, '.scarlet', 'decision-journal.jsonl');
+    const journalPath = scarletPath('decision-journal.jsonl');
+    if (!journalPath) return;
     const entry = {
         ts: new Date().toISOString(),
         id: 'dec_' + Date.now(),
@@ -1625,9 +1641,8 @@ function logDecision(context, alternatives, chosen, rationale, confidence) {
 }
 
 function getRecentDecisions(maxEntries) {
-    const root = getWorkspaceRoot();
-    if (!root) return [];
-    const journalPath = path.join(root, '.scarlet', 'decision-journal.jsonl');
+    const journalPath = scarletPath('decision-journal.jsonl');
+    if (!journalPath) return [];
     try {
         if (!fs.existsSync(journalPath)) return [];
         const stat = fs.statSync(journalPath);
@@ -1845,10 +1860,10 @@ const IDLE_TASK_LIBRARY = [
         cooldownMs: 3600000, // 1 hour
         priority: () => {
             // Only if we're making good progress (>50% done)
-            const root = getWorkspaceRoot();
-            if (!root) return 0;
+            const gPath = scarletPath('goals.json');
+            if (!gPath) return 0;
             try {
-                const g = JSON.parse(fs.readFileSync(path.join(root, '.scarlet', 'goals.json'), 'utf8'));
+                const g = JSON.parse(fs.readFileSync(gPath, 'utf8'));
                 const all = g.layers.flatMap(l => l.goals || []);
                 const done = all.filter(x => x.status === 'done').length;
                 return done / all.length > 0.5 ? 0.45 : 0.15;
@@ -1962,10 +1977,8 @@ function getIdleTaskDirective() {
 // writes a summary. Called as an idle task or on demand.
 
 function generateAutonomyRetrospective() {
-    const root = getWorkspaceRoot();
-    if (!root) return null;
-    const eventsPath = path.join(root, '.scarlet', 'events.jsonl');
-    if (!fs.existsSync(eventsPath)) return null;
+    const eventsPath = scarletPath('events.jsonl');
+    if (!eventsPath || !fs.existsSync(eventsPath)) return null;
 
     try {
         // idle_007: Size guard — avoid reading oversized files into memory
@@ -2030,9 +2043,8 @@ const DEFAULT_IDLE_CYCLE_TEXT = '[SCARLET-IDLE-LIFE] No user input. Cognitive cy
     '  → If you catch yourself writing analysis-of-analysis, STOP and do real work.';
 
 function getIdleCycleText() {
-    const root = getWorkspaceRoot();
-    if (root) {
-        const cyclePath = path.join(root, '.scarlet', 'idle-cycle.txt');
+    const cyclePath = scarletPath('idle-cycle.txt');
+    if (cyclePath) {
         try {
             if (fs.existsSync(cyclePath)) {
                 return fs.readFileSync(cyclePath, 'utf-8').trim();
@@ -2046,9 +2058,8 @@ function getIdleCycleText() {
 // Reads goals.json at idle time to suggest the next actionable goal.
 // A goal is actionable if: not done, and all dependencies are done.
 function getNextActionableGoal() {
-    const root = getWorkspaceRoot();
-    if (!root) return null;
-    const goalsPath = path.join(root, '.scarlet', 'goals.json');
+    const goalsPath = scarletPath('goals.json');
+    if (!goalsPath) return null;
     const goalsData = readJsonSafe(goalsPath, null);
     if (!goalsData || !goalsData.layers) return null;
 
@@ -2225,7 +2236,7 @@ async function onLoopCheck(roundData, loopInstance) {
 
         // ── Ledger modification check (v2.11: moved before Decision Collapse to fix TDZ bug) ──
         const root = getWorkspaceRoot();
-        const ledgerPath = root ? path.join(root, '.scarlet', 'task_ledger.json') : null;
+        const ledgerPath = scarletPath('task_ledger.json');
         let ledgerModified = false;
         if (ledgerPath) {
             try {
@@ -3029,7 +3040,7 @@ function validateRuntimeAssumptions() {
     if (!root) {
         violations.push('no workspace root');
     } else {
-        const scarletDir = path.join(root, '.scarlet');
+        const scarletDir = getScarletDir();
         try {
             if (!fs.existsSync(scarletDir)) fs.mkdirSync(scarletDir, { recursive: true });
             // Test write access
@@ -3052,6 +3063,9 @@ function validateRuntimeAssumptions() {
 function activate(context) {
     METRICS.activatedAt = Date.now();
     METRICS.state = 'Executing';
+
+    // exp_010: Initialize workspace-safe persistence
+    initStorage(context);
 
     // sub_001: Validate core runtime assumptions at startup
     const runtimeCheck = validateRuntimeAssumptions();
@@ -3116,8 +3130,8 @@ module.exports = { activate, deactivate };
 // Expose internals only when SCARLET_TEST env var is set, for automated testing.
 if (process.env.SCARLET_TEST) {
     module.exports.__test = {
-        POLICY, METRICS, ROLLING, DRIFT, PHANTOM, STATE_MODEL, VERIFICATION,
-        cfg, getWorkspaceRoot, getBufferPath, sleep,
+        POLICY, METRICS, ROLLING, DRIFT, PHANTOM, STATE_MODEL, VERIFICATION, STORAGE,
+        cfg, getWorkspaceRoot, getBufferPath, getScarletDir, scarletPath, sleep,
         pushRollingRound, isPhantomToolCall, isPhantomOnlyRound, isPhantomDominantRound,
         pushDriftRound, computeQualityDrift, enterRepairState, exitRepairState,
         classifyTerminalCommand, classifyPlaywrightCode, detectProgressEvent,
