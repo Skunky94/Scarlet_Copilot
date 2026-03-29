@@ -534,6 +534,52 @@ suite('JSON Safe IO', () => {
     });
 });
 
+suite('Decision Journal', () => {
+    const journalPath = path.join(__dirname, '..', '.scarlet', 'decision-journal.jsonl');
+
+    test('logDecision writes to journal', () => {
+        // Clean state
+        if (fs.existsSync(journalPath)) fs.unlinkSync(journalPath);
+        T.logDecision('test_context', ['option_a', 'option_b'], 'option_a', 'testing', 0.9);
+        assert.ok(fs.existsSync(journalPath), 'Journal file should exist');
+        const content = fs.readFileSync(journalPath, 'utf-8').trim();
+        const entry = JSON.parse(content);
+        assert.strictEqual(entry.context, 'test_context');
+        assert.strictEqual(entry.chosen, 'option_a');
+        assert.strictEqual(entry.confidence, 0.9);
+        assert.strictEqual(entry.validated, false);
+    });
+
+    test('logDecision clamps confidence to [0,1]', () => {
+        T.logDecision('clamp_test', ['a'], 'a', 'testing', 5.0);
+        const decisions = T.getRecentDecisions(10);
+        const last = decisions[decisions.length - 1];
+        assert.ok(last.confidence <= 1.0, 'Confidence should be clamped: ' + last.confidence);
+    });
+
+    test('getRecentDecisions returns entries', () => {
+        const decisions = T.getRecentDecisions(10);
+        assert.ok(decisions.length >= 2, 'Should have at least 2 entries');
+        assert.ok(decisions[0].ts, 'Should have timestamp');
+        assert.ok(decisions[0].id, 'Should have id');
+    });
+
+    test('getRecentDecisions respects maxEntries', () => {
+        // Write a few more
+        for (let i = 0; i < 5; i++) {
+            T.logDecision('bulk_' + i, ['a', 'b'], 'a', 'bulk test', 0.5);
+        }
+        const limited = T.getRecentDecisions(3);
+        assert.ok(limited.length <= 3, 'Should respect max: ' + limited.length);
+    });
+
+    // Cleanup
+    test('cleanup test journal', () => {
+        if (fs.existsSync(journalPath)) fs.unlinkSync(journalPath);
+        assert.ok(true);
+    });
+});
+
 // ─── Summary ─────────────────────────────────────────────────────────────────
 
 console.log('\n' + '─'.repeat(50));

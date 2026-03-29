@@ -1,5 +1,15 @@
 {
-  "current_task": null,
+  "current_task": {
+    "id": "idle_005",
+    "title": "Cognitive Journaling",
+    "started_at": "2026-03-29T19:28:15.922Z",
+    "steps": [
+      "design",
+      "implement",
+      "test",
+      "commit"
+    ]
+  },
   "completed_tasks": [
     {
       "id": "int_021",

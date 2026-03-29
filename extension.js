@@ -675,6 +675,8 @@ function enterRepairState() {
     writeAgentState(st);
     console.log('[LOOP-GUARDIAN] QUALITY DRIFT: entering repair state');
     logEvent('drift', 'repair_enter', { score: DRIFT.consecutiveBadWindows });
+    logDecision('quality_drift_detected', ['enter_repair', 'ignore_and_monitor'], 'enter_repair',
+        'Drift score below threshold for ' + DRIFT.consecutiveBadWindows + ' consecutive windows', 0.85);
 }
 
 function exitRepairState(reason) {
@@ -702,6 +704,8 @@ function exitRepairState(reason) {
     }
     console.log('[LOOP-GUARDIAN] Exiting repair state (' + (reason || 'metrics_recovered') + ')');
     logEvent('drift', 'repair_exit', { reason: reason || 'metrics_recovered', roundsInRepair });
+    logDecision('repair_exit', ['continue_repair', 'exit_repair'], 'exit_repair',
+        reason + ' after ' + roundsInRepair + ' rounds', 0.8);
 }
 
 // ─── Compulsive Loop Detector ────────────────────────────────────────────────
@@ -1594,6 +1598,46 @@ function logRoundMetrics(roundData, eventType) {
     }
 }
 
+// ─── Decision Journal (idle_005: Cognitive Journaling) ───────────────────────
+// Logs significant decisions with alternatives, rationale, and confidence.
+// Reviewed periodically by the idle task for outcome validation.
+
+function logDecision(context, alternatives, chosen, rationale, confidence) {
+    const root = getWorkspaceRoot();
+    if (!root) return;
+    const journalPath = path.join(root, '.scarlet', 'decision-journal.jsonl');
+    const entry = {
+        ts: new Date().toISOString(),
+        id: 'dec_' + Date.now(),
+        context,
+        alternatives,
+        chosen,
+        rationale,
+        confidence: Math.max(0, Math.min(1, confidence || 0.5)),
+        validated: false,
+        outcome: null
+    };
+    try {
+        fs.appendFileSync(journalPath, JSON.stringify(entry) + '\n');
+    } catch (e) {
+        console.warn('[LOOP-GUARDIAN] Decision journal write failed: ' + e.message);
+    }
+}
+
+function getRecentDecisions(maxEntries) {
+    const root = getWorkspaceRoot();
+    if (!root) return [];
+    const journalPath = path.join(root, '.scarlet', 'decision-journal.jsonl');
+    try {
+        if (!fs.existsSync(journalPath)) return [];
+        const stat = fs.statSync(journalPath);
+        if (stat.size > POLICY.logging.maxEventFileBytes) return []; // safety guard
+        const lines = fs.readFileSync(journalPath, 'utf-8').trim().split('\n').filter(Boolean);
+        const entries = lines.map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+        return entries.slice(-(maxEntries || 20));
+    } catch { return []; }
+}
+
 // ─── Buffer: read + shift first message ──────────────────────────────────────
 
 function readAndShiftBuffer() {
@@ -1859,6 +1903,26 @@ const IDLE_TASK_LIBRARY = [
             '→ Identify redundancies or contradictions\n' +
             '→ If compression possible, apply changes and commit\n' +
             '→ If coherent, note review date in .scarlet/prompt-dna-review.md'
+    },
+    {
+        id: 'cognitive_journal_review',
+        label: 'Review decision journal',
+        cooldownMs: 3600000, // 1 hour
+        priority: () => {
+            const decisions = getRecentDecisions(10);
+            const unvalidated = decisions.filter(d => !d.validated);
+            return unvalidated.length >= 3 ? 0.6 : unvalidated.length > 0 ? 0.35 : 0.1;
+        },
+        directive: () => {
+            const decisions = getRecentDecisions(10);
+            const unvalidated = decisions.filter(d => !d.validated);
+            return 'COGNITIVE JOURNAL REVIEW (idle_005): Review recent decisions.\n' +
+                '→ ' + unvalidated.length + ' unvalidated decisions in journal\n' +
+                '→ For each: assess whether the outcome matched expectations\n' +
+                '→ Note patterns: overconfidence, underconfidence, wrong alternatives considered\n' +
+                '→ Write findings to /memories/ if patterns emerge\n' +
+                '→ Read .scarlet/decision-journal.jsonl for full history';
+        }
     }
 ];
 
@@ -3059,7 +3123,7 @@ if (process.env.SCARLET_TEST) {
         classifyTerminalCommand, classifyPlaywrightCode, detectProgressEvent,
         inferStateFromToolCalls, resolveEffectiveState, getCurrentTaskSnapshot,
         shouldOperationalNudge, shouldMetaNudge, selectIdleTask,
-        readJsonSafe, writeJsonSafe, logEvent, buildMetricsLine,
+        readJsonSafe, writeJsonSafe, logEvent, logDecision, getRecentDecisions, buildMetricsLine,
         WRITE_TOOLS, VERIFY_TOOLS, META_TOOLS, BROWSER_TOOLS,
         IDLE_TASK_LIBRARY, IDLE_TASK_HISTORY,
         resetDriftWindow: () => {
