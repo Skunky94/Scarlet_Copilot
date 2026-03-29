@@ -1,6 +1,6 @@
 {
   "schema_version": "3.0.0",
-  "last_updated": "2026-03-29T19:19:24.774Z",
+  "last_updated": "2026-03-29T19:27:59.689Z",
   "near_impossible_goal": "Autonomous persistent entity with eventual embodiment",
   "notes": "Goal graph v3. Co-designed with GPT. Focus: robustezza runtime, qualita semantica, modularizzazione, crescita autonoma.",
   "layers": [
@@ -553,7 +553,7 @@
           "title": "Automated Test Suite",
           "description": "Test automatizzati per funzioni critiche.",
           "priority": "P1",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             "exp_001"
           ],
@@ -561,7 +561,9 @@
             "Unit test per funzioni pure",
             "Integration test per state machine",
             "CI-ready"
-          ]
+          ],
+          "artifact": "tests/test-suite.js (46 tests), __test exports in extension.js",
+          "notes": "v2.12: 12 suites, 46 tests, all green. Zero prod impact (SCARLET_TEST gated)."
         },
         {
           "id": "exp_006",
