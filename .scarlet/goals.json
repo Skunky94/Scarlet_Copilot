@@ -1,6 +1,6 @@
 {
   "schema_version": "3.0.0",
-  "last_updated": "2026-03-29T18:31:26.884Z",
+  "last_updated": "2026-03-29T18:40:20.640Z",
   "near_impossible_goal": "Autonomous persistent entity with eventual embodiment",
   "notes": "Goal graph v3. Co-designed with GPT. Focus: robustezza runtime, qualita semantica, modularizzazione, crescita autonoma.",
   "layers": [
@@ -451,7 +451,7 @@
           "title": "Autonomy Metrics",
           "description": "Metriche quantitative sulla capacita autonoma.",
           "priority": "P2",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             "auto_001",
             "auto_002"
@@ -460,7 +460,9 @@
             "Tasks completati senza input utente",
             "Ratio autonomo/assistito",
             "Trend nel tempo"
-          ]
+          ],
+          "artifact": "Autonomy tracking in METRICS + buildMetricsLine",
+          "notes": "v2.12: tasksAutonomous/tasksAssisted counters, autonomy% in metrics line, per-round autonomy stats in JSONL."
         },
         {
           "id": "auto_legacy",

@@ -1,10 +1,10 @@
 {
   "current_task": {
-    "id": "int_039",
-    "title": "auto_005: Idle Without Theater",
+    "id": "int_040",
+    "title": "auto_008: Autonomy Metrics",
     "source": "goals-v3",
-    "priority": "P1",
-    "started_at": "2026-03-29T18:31:26.887Z",
+    "priority": "P2",
+    "started_at": "2026-03-29T18:40:20.643Z",
     "status": "done"
   },
   "completed_tasks": [
@@ -91,12 +91,18 @@
       "title": "auto_006: Block Declaration Discipline",
       "completed_at": "2026-03-29T18:31:26.887Z",
       "outcome": "auto_006 done"
+    },
+    {
+      "id": "int_039",
+      "title": "auto_005: Idle Without Theater",
+      "completed_at": "2026-03-29T18:40:20.643Z",
+      "outcome": "auto_005 done"
     }
   ],
   "backlog_external": [],
   "backlog_internal": [],
   "stats": {
-    "total_completed": 37,
+    "total_completed": 38,
     "total_abandoned": 0
   }
 }
