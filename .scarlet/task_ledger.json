@@ -1,13 +1,13 @@
 {
-    "notes":  "Phase 1 complete: 7/11 modules extracted, 3645-\u003e2055 lines (-44%). Committed 0fe011c + deploy fix 5b4d986. 58/58 tests green. Phase 2: drift, semantic promotion, continuation gate, onLoopCheck — deeply cross-dependent.",
-    "last_verification":  "2026-03-29T23:28:01",
+    "notes":  "Phase 2 done: drift.js, gate.js, logging.js extracted. 3645-\u003e1432 lines (-61%). 58/58 tests green. Deploy fixed (nested lib/ PowerShell bug). Only onLoopCheck + buffer/injection helpers remain in extension.js.",
+    "last_verification":  "2026-03-29T23:52:25",
     "verified":  true,
     "backlog_internal":  [
-                             "exp_001 phase 2 remaining sections"
+
                          ],
     "current_task":  "exp_001: Modularize Extension Monolith",
     "status":  "in_progress",
-    "current_step":  "Phase 2 planning — assess remaining 4 sections",
+    "current_step":  "Phase 2 complete — 10/11 modules extracted. Only onLoopCheck (~370 lines) remains.",
     "backlog_external":  [
 
                          ]
