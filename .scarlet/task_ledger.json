@@ -1,26 +1,30 @@
 ﻿{
   "current_task": {
-    "id": "int_019",
-    "title": "Setup Gmail + GitHub for external identity",
+    "id": "int_021",
+    "title": "Design Reflexion mechanism for Loop Guardian",
     "status": "in-progress",
-    "started_at": "2026-03-29T17:08:00Z",
+    "started_at": "2026-03-29T18:35:00Z",
     "steps": [
-      {"id": "s1", "name": "Save credentials to memory", "status": "done"},
-      {"id": "s2", "name": "Configure git with real email", "status": "done", "verification_evidence": "git log shows scarletagent2026@gmail.com"},
-      {"id": "s3", "name": "Login to Gmail via browser", "status": "done", "verification_evidence": "Inbox page loaded successfully"},
-      {"id": "s4", "name": "Register GitHub account", "status": "blocked", "blocked_by": "CAPTCHA verification requires human interaction"}
+      {"id": "s1", "name": "Analyze current failure detection in extension.js", "status": "done", "verification_evidence": "Read DRIFT detector (lines 92-260), compulsive loop (270-290), shouldNudge (679-725), buildContextualPrompt (442-665), state inference (660+). Identified 3 failure detectors, all trigger corrective behavior but extract no lessons."},
+      {"id": "s2", "name": "Design reflection extraction + storage format", "status": "done", "verification_evidence": "Designed and implemented inline: REFLEXION object, loadRecentReflections, formatReflectionsForPrompt, requestReflection, checkReflectionWritten"},
+      {"id": "s3", "name": "Implement in extension.js as v2.10.0 feature", "status": "done", "verification_evidence": "node -c passed. VERSION=v2.10.0. 6 integration points: REFLEXION state, exitRepairState hook, compulsive loop hook, shouldNudge reflect priority, buildContextualPrompt reflect case, onLoopCheck reflection detection+expiry"},
+      {"id": "s4", "name": "Deploy and verify", "status": "not-started"}
     ]
   },
   "completed_tasks": [
     {"id": "int_020", "title": "Configure git with real email", "completed_at": "2026-03-29T17:10:00Z", "outcome": "scarletagent2026@gmail.com"},
-    {"id": "int_018", "title": "Git init workspace", "completed_at": "2026-03-29T17:05:00Z", "outcome": "83 files, 2 commits."},
+    {"id": "int_019", "title": "Setup Gmail + GitHub for external identity", "completed_at": "2026-03-29T18:30:00Z", "outcome": "Gmail done. GitHub blocked by CAPTCHA - needs Davide."},
+    {"id": "int_018", "title": "Git init workspace", "completed_at": "2026-03-29T17:05:00Z", "outcome": "83 files, 3 commits."},
     {"id": "int_016", "title": "Update goals.json", "completed_at": "2026-03-29T17:00:00Z", "outcome": "L2-06 through L2-09 added."},
     {"id": "int_015", "title": "Documentation exploration", "completed_at": "2026-03-29T16:55:00Z", "outcome": "VS Code APIs + Lilian Weng."},
     {"id": "int_014", "title": "Decision Collapse + GPT calibration", "completed_at": "2026-03-29T16:15:00Z", "outcome": "v2.9.0 deployed."}
   ],
-  "backlog_external": [],
-  "backlog_internal": [
-    {"id": "int_017", "title": "Observe v2.9.0 Decision Collapse in action", "priority": "high", "blocked_by": "VS Code reload"}
+  "backlog_external": [
+    {"id": "ext_001", "title": "Complete GitHub signup (CAPTCHA)", "priority": "medium", "blocked_by": "Davide must complete CAPTCHA or register manually"}
   ],
-  "stats": {"total_completed": 16, "total_abandoned": 0}
+  "backlog_internal": [
+    {"id": "int_017", "title": "Observe v2.9.0 Decision Collapse in action", "priority": "high", "blocked_by": "VS Code reload"},
+    {"id": "int_022", "title": "Update goals.json with git progress", "priority": "low"}
+  ],
+  "stats": {"total_completed": 17, "total_abandoned": 0}
 }

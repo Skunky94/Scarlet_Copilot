@@ -1,4 +1,4 @@
-// Scarlet Loop Guardian v2.7.0
+// Scarlet Loop Guardian v2.10.0
 // Exports 3 hooks consumed by micro-patches in Copilot Chat's extension.js:
 //   shouldBypassToolLimit, shouldBypassYield, onLoopCheck
 //
@@ -13,7 +13,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = 'v2.9.0'; // single source of truth for runtime version
+const VERSION = 'v2.10.0'; // single source of truth for runtime version
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
@@ -87,6 +87,71 @@ function pushRollingRound(toolCalls, phantomCalls) {
     }
     ROLLING.productivityScore = totalTools > 0 ? Math.max(0, (totalTools - totalPhantom) / totalTools) : 1.0;
     ROLLING.phantomRatioAvg = totalTools > 0 ? totalPhantom / totalTools : 0;
+}
+
+// ─── Reflexion System (v2.10.0) ──────────────────────────────────────────────
+// Implements Shinn 2023 Reflexion pattern: after failure/drift events, extract
+// a natural language lesson and store it. Future prompts include recent reflections
+// so the agent learns from its own mistakes across sessions.
+// Storage: .scarlet/reflections.jsonl (one JSON object per line)
+
+const REFLEXION = {
+    pendingReflection: null,     // {trigger, context} — set by failure detectors, consumed by shouldNudge
+    lastReflectionMtime: 0,      // mtime of reflections.jsonl — to detect when LLM writes one
+    MAX_REFLECTIONS_IN_PROMPT: 3, // how many recent reflections to embed in prompts
+    REFLECTION_FILE: 'reflections.jsonl'
+};
+
+function getReflectionsPath() {
+    const root = getWorkspaceRoot();
+    return root ? path.join(root, '.scarlet', REFLEXION.REFLECTION_FILE) : null;
+}
+
+function loadRecentReflections(n) {
+    const p = getReflectionsPath();
+    if (!p || !fs.existsSync(p)) return [];
+    try {
+        let raw = fs.readFileSync(p, 'utf-8');
+        if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
+        const lines = raw.trim().split('\n').filter(l => l.trim());
+        const reflections = [];
+        for (const line of lines) {
+            try { reflections.push(JSON.parse(line)); } catch {}
+        }
+        return reflections.slice(-n); // last N
+    } catch { return []; }
+}
+
+function formatReflectionsForPrompt() {
+    const recent = loadRecentReflections(REFLEXION.MAX_REFLECTIONS_IN_PROMPT);
+    if (recent.length === 0) return '';
+    let text = '\n[REFLECTIONS — lessons from past failures]\n';
+    for (const r of recent) {
+        text += '- [' + (r.trigger || '?') + '] ' + (r.lesson || r.cause_hypothesis || 'no lesson recorded') + '\n';
+    }
+    return text;
+}
+
+function requestReflection(trigger, extraContext) {
+    REFLEXION.pendingReflection = {
+        trigger,
+        context: extraContext || {},
+        requestedAt: Date.now()
+    };
+    console.log('[LOOP-GUARDIAN] Reflexion requested: ' + trigger);
+}
+
+function checkReflectionWritten() {
+    const p = getReflectionsPath();
+    if (!p || !fs.existsSync(p)) return false;
+    try {
+        const mtime = fs.statSync(p).mtimeMs;
+        if (mtime > REFLEXION.lastReflectionMtime) {
+            REFLEXION.lastReflectionMtime = mtime;
+            return true;
+        }
+    } catch {}
+    return false;
 }
 
 // ─── Quality Drift Detector (v2.4.0) ────────────────────────────────────────
@@ -241,8 +306,16 @@ function exitRepairState(reason) {
     if (!DRIFT.inRepair) return;
     DRIFT.inRepair = false;
     DRIFT.consecutiveBadWindows = 0;
+    const roundsInRepair = DRIFT.repairRoundsElapsed;
     DRIFT.repairRoundsElapsed = 0;
     DRIFT.repairNudgeCooldown = 0;
+    // Reflexion: request lesson extraction after exiting repair
+    requestReflection('repair_exit', {
+        reason: reason || 'metrics_recovered',
+        roundsInRepair,
+        productivity: ROLLING.productivityScore,
+        phantomRatio: ROLLING.phantomRatioAvg
+    });
     // Sync state file to prevent split-brain (Bug A fix)
     const st = readAgentState();
     if (st.state === 'repair') {
@@ -450,9 +523,37 @@ function buildContextualPrompt(purpose, agentState) {
     const header = '[SCARLET-IDLE-CYCLE] State: ' + stateStr +
         ' | Task: ' + currentTask +
         ' | Ext backlog: ' + extBacklog + ' | Int backlog: ' + intBacklog + '\n' +
-        metricsLine + '\n\n';
+        metricsLine +
+        formatReflectionsForPrompt() + '\n\n';
 
     switch (purpose) {
+        case 'reflect': {
+            const ref = REFLEXION.pendingReflection || {};
+            const trigger = ref.trigger || 'unknown';
+            const ctx = ref.context || {};
+            let contextStr = '';
+            if (ctx.reason) contextStr += 'Exit reason: ' + ctx.reason + '. ';
+            if (ctx.roundsInRepair) contextStr += 'Rounds in repair: ' + ctx.roundsInRepair + '. ';
+            if (ctx.phantomRounds) contextStr += 'Phantom rounds: ' + ctx.phantomRounds + '. ';
+            if (ctx.productivity !== undefined) contextStr += 'Productivity: ' + ctx.productivity.toFixed(2) + '. ';
+            if (ctx.phantomRatio !== undefined) contextStr += 'Phantom ratio: ' + ctx.phantomRatio.toFixed(2) + '. ';
+
+            return header +
+                'REFLEXION — LESSON EXTRACTION (trigger: ' + trigger + ')\n' +
+                'A failure event just occurred and was resolved. Extract a lesson.\n\n' +
+                'Context: ' + contextStr + '\n' +
+                'Current task: ' + currentTask + '\n\n' +
+                'MANDATORY — append ONE entry to .scarlet/reflections.jsonl using run_in_terminal:\n' +
+                'Format (single line JSON, append with >>):\n' +
+                '{"ts":"<ISO>","trigger":"' + trigger + '","task":"' + currentTask + '",' +
+                '"cause_hypothesis":"<what caused this failure>","lesson":"<actionable takeaway for future>",' +
+                '"severity":"minor|moderate|severe"}\n\n' +
+                '→ Be specific: "I called phantom tools while blocked on CAPTCHA" not "I had issues"\n' +
+                '→ The lesson should be a rule you can follow: "When blocked on external input, immediately switch to backlog tasks"\n' +
+                '→ After writing the reflection, continue with your current task.\n' +
+                '→ This reflection will appear in future prompts to prevent the same mistake.';
+        }
+
         case 'verify':
             return header +
                 'VERIFICATION REQUIRED: Your last step needs verification before proceeding.\n' +
@@ -684,6 +785,12 @@ function shouldNudge(agentState) {
     if (agentState.state === 'equilibrium' && agentState.last_transition_reason !== 'inferred_from_tool_calls') return null;
 
     let candidate = null;
+
+    // REFLEXION (v2.10.0): pending reflection takes highest priority
+    // Fires once after failure events (repair exit, compulsive loop, etc.)
+    if (REFLEXION.pendingReflection) {
+        candidate = 'reflect';
+    }
 
     // GPT debrief: task just completed (ledger updated recently) and no current task
     // This fires once after task completion to suggest a GPT debrief
@@ -1061,6 +1168,20 @@ async function onLoopCheck(roundData, loopInstance) {
             ROLLING.roundsSinceLedgerUpdate = 0;
         }
 
+        // ── Reflexion: check if reflection was written (v2.10.0) ──
+        if (REFLEXION.pendingReflection && checkReflectionWritten()) {
+            console.log('[LOOP-GUARDIAN] Reflection written, clearing pending request');
+            REFLEXION.pendingReflection = null;
+        }
+        // Auto-expire stale reflection requests (after 10 rounds without writing)
+        if (REFLEXION.pendingReflection && REFLEXION.pendingReflection.requestedAt) {
+            const roundsSinceRequest = Math.floor((Date.now() - REFLEXION.pendingReflection.requestedAt) / 5000);
+            if (roundsSinceRequest > 10) {
+                console.log('[LOOP-GUARDIAN] Reflection request expired (10+ rounds without writing)');
+                REFLEXION.pendingReflection = null;
+            }
+        }
+
         // Check for verification actions (re-reads, get_errors, test runs)
         const verificationActions = ['read_file', 'get_errors', 'grep_search'];
         const hasVerification = callNames.some(n => verificationActions.includes(n));
@@ -1129,6 +1250,13 @@ async function onLoopCheck(roundData, loopInstance) {
                 METRICS.state = 'Cooling';
                 COMPULSIVE_LOOP.coolingUntil = Date.now() + 30000; // non-blocking 30s cooldown
                 console.log('[LOOP-GUARDIAN] COMPULSIVE LOOP HARD STOP after ' + count + ' phantom rounds. 30s non-blocking cooldown.');
+
+                // Reflexion: request lesson extraction after compulsive loop
+                requestReflection('compulsive_loop', {
+                    phantomRounds: count,
+                    productivity: ROLLING.productivityScore,
+                    phantomRatio: ROLLING.phantomRatioAvg
+                });
 
                 const stopId = 'scarlet_stop_' + Date.now();
                 roundData.round.toolCalls.push({ id: stopId, name: stopId, arguments: '{}', type: 'function' });
