@@ -391,14 +391,15 @@
           "title": "Pre-Change Architectural Consultation",
           "description": "Consultazione GPT automatica prima di cambiamenti strutturali.",
           "priority": "P1",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             "auto_003"
           ],
           "completion_criteria": [
             "Trigger automatico su structural change",
             "GPT review prima di modifiche a file critici"
-          ]
+          ],
+          "completed": "2026-03-30"
         },
         {
           "id": "auto_005",
@@ -688,7 +689,7 @@
           "title": "GPT Reality Check Sessions",
           "description": "Sessioni periodiche con GPT per reality check cognitivo.",
           "priority": "P1",
-          "status": "active",
+          "status": "done",
           "dependencies": [
             "auto_003"
           ],
@@ -696,14 +697,16 @@
             "Almeno 1 sessione per giornata attiva",
             "Insight registrati in memory",
             "Behavioral calibration"
-          ]
+          ],
+          "completed_at": "2026-03-29T23:24:44.717Z",
+          "notes": "First GPT consultation completed on own ChatGPT account (scarletagent2026@gmail.com). Reality check: 60% good architecture, 30% slight over-abstraction. Key insight: goal inflation risk, reflection theater risk, browser fragility."
         },
         {
           "id": "idle_003",
           "title": "GPT Architectural Debrief",
           "description": "Debrief architetturale con GPT dopo cambiamenti significativi.",
           "priority": "P1",
-          "status": "active",
+          "status": "done",
           "dependencies": [
             "auto_003"
           ],
@@ -711,7 +714,9 @@
             "Debrief post-release",
             "Decisioni architetturali discusse",
             "Alternative considerate"
-          ]
+          ],
+          "completed_at": "2026-03-29T23:24:44.718Z",
+          "notes": "Architectural debrief completed. GPT identified 4 breaking points (goal inflation, reflection theater, architecture drift, tool dependency). Recommended Decision Quality Feedback as next capability. Architecture validated as Agent→Governor→World pattern (AI safety control loop)."
         },
         {
           "id": "idle_004",
@@ -835,7 +840,7 @@
           "title": "Consultation Mode Prioritization",
           "description": "Prioritizzazione intelligente delle consultazioni GPT.",
           "priority": "P2",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             "auto_003",
             "idle_002",
@@ -844,7 +849,9 @@
           "completion_criteria": [
             "Priorita consultazione basata su contesto",
             "Evitare consultazioni ridondanti"
-          ]
+          ],
+          "completed_at": "2026-03-29T23:24:44.718Z",
+          "notes": "Consultation mode prioritization established: A=Reality Check (every 6-12h, default), B=Architecture Review, C=Cognitive Debugging (most important), D=Strategy/Prioritization. Trigger mapping confirmed. GPT also proposed: Decision Quality Feedback → Cognition Telemetry → Chaos Testing → Long-Horizon Simulation roadmap."
         },
         {
           "id": "idle_012",
