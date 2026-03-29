@@ -1,22 +1,32 @@
 {
     "current_task":  {
-                         "id":  "int_025",
-                         "started_at":  "2026-03-29T20:00:00Z",
-                         "source":  "goals-v3-idle",
-                         "priority":  "P2",
+                         "id":  "int_026",
+                         "started_at":  "2026-03-29T20:05:00Z",
+                         "source":  "goals-v3-critical-path",
+                         "priority":  "P1",
                          "steps":  [
                                        {
                                            "status":  "done",
-                                           "title":  "Compress block-01-role.txt (3 sections)",
+                                           "title":  "writeTaskLedger + promoteNextBacklogItem",
                                            "id":  "s1"
                                        },
                                        {
                                            "status":  "done",
-                                           "title":  "Commit + push",
+                                           "title":  "Modify injectContinuationGate for promotion",
                                            "id":  "s2"
+                                       },
+                                       {
+                                           "status":  "done",
+                                           "title":  "Prevent equilibrium with pending backlog",
+                                           "id":  "s3"
+                                       },
+                                       {
+                                           "status":  "done",
+                                           "title":  "Syntax check + deploy + commit",
+                                           "id":  "s4"
                                        }
                                    ],
-                         "title":  "idle_004: Prompt DNA compression + next goal selection",
+                         "title":  "auto_001: Continuation Gate Semantic Promotion",
                          "status":  "done"
                      },
     "completed_tasks":  [
@@ -90,7 +100,7 @@
                              }
                          ],
     "stats":  {
-                  "total_completed":  22,
+                  "total_completed":  23,
                   "total_abandoned":  0
               }
 }
