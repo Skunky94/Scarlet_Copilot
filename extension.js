@@ -112,7 +112,11 @@ const METRICS = {
     idleLifeTriggers: 0,
     metricsSkipped: 0,
     compulsiveLoopDetections: 0,
-    nudgesInjected: 0
+    nudgesInjected: 0,
+    // auto_008: Autonomy metrics
+    tasksAutonomous: 0,  // tasks started from backlog promotion or goal graph
+    tasksAssisted: 0,    // tasks started from user input
+    goalsCompleted: 0    // goals marked done this session
 };
 
 // ─── Rolling Metrics (runtime feedback) ──────────────────────────────────────
@@ -769,6 +773,7 @@ function promoteNextBacklogItem() {
     writeTaskLedger(ledger);
     console.log('[LOOP-GUARDIAN] Gate promoted backlog item: ' + next.title);
     logEvent('gate', 'backlog_promoted', { itemId: next.id, title: next.title, source: source });
+    METRICS.tasksAutonomous++;
     return next;
 }
 
@@ -958,11 +963,14 @@ function hasInternalBacklog() {
 // Builds parametrized injection text based on state, metrics, and task context.
 
 function buildMetricsLine() {
+    const autonomyTotal = METRICS.tasksAutonomous + METRICS.tasksAssisted;
+    const autonomyPct = autonomyTotal > 0 ? Math.round(100 * METRICS.tasksAutonomous / autonomyTotal) : 100;
     return '[CONTEXT] Productivity: ' + ROLLING.productivityScore.toFixed(2) +
         ' | Phantom ratio: ' + ROLLING.phantomRatioAvg.toFixed(2) +
         ' | Rounds since verification: ' + ROLLING.roundsSinceVerification +
         ' | Rounds since ledger update: ' + ROLLING.roundsSinceLedgerUpdate +
-        ' | Uptime: ' + getUptime();
+        ' | Uptime: ' + getUptime() +
+        ' | Autonomy: ' + autonomyPct + '% (' + METRICS.tasksAutonomous + '/' + autonomyTotal + ')';
 }
 
 function buildContextualPrompt(purpose, agentState) {
@@ -1519,7 +1527,13 @@ function logRoundMetrics(roundData, eventType) {
             uptimeMs: METRICS.activatedAt ? Date.now() - METRICS.activatedAt : 0,
             totalToolCalls: METRICS.toolCalls,
             totalMessages: METRICS.messagesDelivered,
-            totalIdleLifeTriggers: METRICS.idleLifeTriggers
+            totalIdleLifeTriggers: METRICS.idleLifeTriggers,
+            // auto_008: Autonomy metrics
+            autonomy: {
+                autonomous: METRICS.tasksAutonomous,
+                assisted: METRICS.tasksAssisted,
+                goalsCompleted: METRICS.goalsCompleted
+            }
         };
         fs.appendFileSync(metricsPath, JSON.stringify(entry) + '\n', 'utf-8');
         // Also log to structured events (exp_003)
@@ -1615,6 +1629,7 @@ function injectMessage(roundData, loopInstance, messageText) {
         new vscode.LanguageModelTextPart(formatted)
     ]);
     METRICS.messagesDelivered++;
+    METRICS.tasksAssisted++; // auto_008: user message → assisted task
     console.log('[LOOP-GUARDIAN] Message injected via phantom tool call');
 }
 
