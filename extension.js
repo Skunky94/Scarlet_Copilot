@@ -100,7 +100,14 @@ function getWorkspaceRoot() {
 function getBufferPath() {
     const root = getWorkspaceRoot();
     if (!root) return null;
-    return path.join(root, cfg('bufferFile') || '.scarlet/daemon_buffer.json');
+    // idle_007: Sanitize buffer path to prevent path traversal
+    const bufferFile = cfg('bufferFile') || '.scarlet/daemon_buffer.json';
+    const resolved = path.resolve(root, bufferFile);
+    if (!resolved.startsWith(root)) {
+        console.warn('[LOOP-GUARDIAN] Buffer path traversal blocked: ' + bufferFile);
+        return path.join(root, '.scarlet', 'daemon_buffer.json');
+    }
+    return resolved;
 }
 
 function sleep(ms) {
@@ -1828,6 +1835,18 @@ const IDLE_TASK_LIBRARY = [
                 '→ If a new mitigation is needed, create a goal in goals.json.\n' +
                 '→ Write findings to /memories/ for persistence.';
         }
+    },
+    {
+        id: 'security_audit',
+        label: 'Security audit check',
+        cooldownMs: 7200000, // 2 hours
+        priority: () => 0.5,
+        directive: () =>
+            'SECURITY AUDIT (idle_007): Review extension.js for security concerns.\n' +
+            '→ Check .scarlet/security-audit.md for the OWASP checklist\n' +
+            '→ Scan for: path traversal, injection, unbounded reads, info exposure\n' +
+            '→ If new issues found: fix immediately and update the audit document.\n' +
+            '→ If clean: note the audit timestamp in the document.'
     }
 ];
 
@@ -1873,6 +1892,9 @@ function generateAutonomyRetrospective() {
     if (!fs.existsSync(eventsPath)) return null;
 
     try {
+        // idle_007: Size guard — avoid reading oversized files into memory
+        const stat = fs.statSync(eventsPath);
+        if (stat.size > 1024 * 1024) return { total: 0, patterns: {}, summary: 'Events file too large for analysis.' };
         const lines = fs.readFileSync(eventsPath, 'utf8').trim().split('\n');
         const failures = [];
         for (const line of lines) {
