@@ -215,6 +215,84 @@ const STATE_MODEL = {
     lastEffectiveChangeAt: 0
 };
 
+// ─── Verification Evidence Protocol (v2.12: cog_010) ─────────────────────────
+// Three-level verification tracking: Signal → Evidence → Completion.
+// Signal: something changed (write tool, execute command, browser action).
+// Evidence: the change was inspected (verify tool after signal).
+// Completion: the inspection confirmed correctness (verify after evidence, or clean errors).
+// This replaces the binary hadVerificationEvidence with a richer model.
+
+const VERIFICATION = {
+    level: 0,               // 0=idle, 1=signal, 2=evidence, 3=completion
+    lastSignalAt: 0,
+    lastSignalType: null,   // 'file_modify' | 'terminal_execute' | 'browser_action'
+    // Window counters (reset with drift window)
+    signalCount: 0,
+    evidenceCount: 0,
+    completionCount: 0,
+    SIGNAL_TIMEOUT_MS: 60000  // signal expires after 60s without evidence
+};
+
+// Advance verification state machine for this round.
+// Returns the level reached this round (0-3).
+function advanceVerificationProtocol(toolCalls) {
+    const now = Date.now();
+    const callNames = toolCalls.map(tc => tc.name || 'unknown');
+
+    // Expire old signals
+    if (VERIFICATION.level >= 1 && (now - VERIFICATION.lastSignalAt) > VERIFICATION.SIGNAL_TIMEOUT_MS) {
+        VERIFICATION.level = 0;
+        VERIFICATION.lastSignalType = null;
+    }
+
+    const hasWrite = callNames.some(n => WRITE_TOOLS.includes(n));
+    const hasTerminalExec = toolCalls.some(tc =>
+        tc.name === 'run_in_terminal' && classifyTerminalCommand(tc.arguments || '') === 'executing'
+    );
+    const hasBrowserExec = callNames.some(n => BROWSER_EXECUTE_TOOLS.includes(n));
+    const hasVerify = callNames.some(n => VERIFY_TOOLS.includes(n) || BROWSER_VERIFY_TOOLS.includes(n));
+    const hasErrorCheck = callNames.includes('get_errors');
+
+    // State machine transitions
+    if (hasWrite || hasTerminalExec || hasBrowserExec) {
+        // New signal — something changed
+        if (VERIFICATION.level === 0 || VERIFICATION.level === 3) {
+            VERIFICATION.level = 1;
+        }
+        VERIFICATION.lastSignalAt = now;
+        VERIFICATION.lastSignalType = hasWrite ? 'file_modify' : hasTerminalExec ? 'terminal_execute' : 'browser_action';
+        VERIFICATION.signalCount++;
+    }
+
+    if (hasVerify && VERIFICATION.level >= 1) {
+        if (VERIFICATION.level === 1) {
+            // Signal → Evidence: first verify after signal
+            VERIFICATION.level = 2;
+            VERIFICATION.evidenceCount++;
+        } else if (VERIFICATION.level === 2) {
+            // Evidence → Completion: second verify confirms correctness
+            VERIFICATION.level = 3;
+            VERIFICATION.completionCount++;
+        }
+    }
+
+    // Special: get_errors at evidence level → completion (error check = confirmation)
+    if (hasErrorCheck && VERIFICATION.level === 2) {
+        VERIFICATION.level = 3;
+        VERIFICATION.completionCount++;
+    }
+
+    return VERIFICATION.level;
+}
+
+// Reset verification protocol counters (called with drift window reset)
+function resetVerificationProtocol() {
+    VERIFICATION.signalCount = 0;
+    VERIFICATION.evidenceCount = 0;
+    VERIFICATION.completionCount = 0;
+    // Don't reset level — it carries across windows for continuity
+}
+
 // ─── Task Tracker (v2.11.0) ─────────────────────────────────────────────────
 // Snapshot for progress event detection.
 
@@ -388,6 +466,13 @@ function computeQualityDrift() {
         browserWorkflowScore,
         browserWorkflowRounds: DRIFT.browserWorkflowRounds,
         gptConsultationRounds: DRIFT.gptConsultationRounds,
+        // Verification protocol (cog_010)
+        verificationProtocol: {
+            signals: VERIFICATION.signalCount,
+            evidence: VERIFICATION.evidenceCount,
+            completions: VERIFICATION.completionCount,
+            currentLevel: VERIFICATION.level
+        },
         phantomOnlyRoundsWindow: PHANTOM.phantomOnlyRoundsWindow,
         phantomDominantRoundsWindow: PHANTOM.phantomDominantRoundsWindow,
         validRounds
@@ -446,6 +531,7 @@ function computeQualityDrift() {
     DRIFT.lastEffectiveState = null;
     PHANTOM.phantomOnlyRoundsWindow = 0;
     PHANTOM.phantomDominantRoundsWindow = 0;
+    resetVerificationProtocol(); // cog_010
 
     return { metrics, score, shouldRepair, shouldExitRepair };
 }
@@ -1670,13 +1756,15 @@ async function onLoopCheck(roundData, loopInstance) {
             }
         }
 
-        // ── Verification detection (v2.11: uses VERIFY_TOOLS + BROWSER_VERIFY_TOOLS) ──
+        // ── Verification detection (v2.12: cog_010 three-level protocol) ──
         const hadVerificationEvidence = callNames.some(n =>
             VERIFY_TOOLS.includes(n) || BROWSER_VERIFY_TOOLS.includes(n)
         );
         if (hadVerificationEvidence && realCount > 0) {
             ROLLING.roundsSinceVerification = 0;
         }
+        // Advance three-level verification protocol (signal → evidence → completion)
+        const verificationLevel = advanceVerificationProtocol(roundData.round.toolCalls);
 
         // ── Browser workflow detection for drift (v2.12: cog_007) ──
         const hasBrowserTools = callNames.some(n => BROWSER_TOOLS.includes(n));
