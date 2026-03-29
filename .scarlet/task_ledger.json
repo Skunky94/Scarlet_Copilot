@@ -2,13 +2,11 @@
   "backlog_internal": [],
   "notes": "exp_007 COMPLETE. 12 modules in lib/. 45/54 goals (83%).",
   "last_verification": "2026-03-29T22:27:12.101Z",
-  "current_task": {
-    "id": "exp_007",
-    "title": "REST Control API",
-    "status": "done",
-    "outcome": "lib/api.js, 6 endpoints, 11 tests, 69/69 green"
-  },
+  "current_task": "emb_002 complete. Assessing next goal.",
   "backlog_external": [],
   "status": "done",
-  "verified": true
+  "verified": true,
+  "current_step": "Goal selection",
+  "steps_completed": 1,
+  "last_updated": "2026-03-29T22:41:36.018Z"
 }
