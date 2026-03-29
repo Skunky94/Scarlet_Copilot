@@ -81,6 +81,12 @@ const POLICY = {
     logging: {
         maxEventFileBytes: 512 * 1024,
         maxMetricsFileLines: 2000
+    },
+    // surv_002: Phantom boundary stabilization
+    phantom: {
+        burstThreshold: 3,           // consecutive phantom-only rounds to declare burst
+        windowInvalidRatio: 0.7,     // if >70% of window rounds are phantom-only → skip repair decision
+        minValidRoundsForRepair: 3   // minimum valid rounds needed to trust drift score for repair
     }
 };
 
@@ -270,7 +276,10 @@ const PHANTOM = {
     phantomDominantRoundsWindow: 0,  // >50% phantom calls in round
     consecutivePhantomOnlyRounds: 0,
     lastPhantomRoundAt: 0,
-    recentPhantomBurst: false
+    recentPhantomBurst: false,       // surv_002: set when burst threshold exceeded
+    BURST_THRESHOLD: POLICY.phantom.burstThreshold,
+    WINDOW_INVALID_RATIO: POLICY.phantom.windowInvalidRatio,
+    MIN_VALID_FOR_REPAIR: POLICY.phantom.minValidRoundsForRepair
 };
 
 // ─── State Confidence Model (v2.11.0) ────────────────────────────────────────
@@ -453,12 +462,21 @@ function pushDriftRound({ toolCallNames, realToolCallNames, effectiveState, hadV
         PHANTOM.phantomOnlyRoundsWindow++;
         PHANTOM.consecutivePhantomOnlyRounds++;
         PHANTOM.lastPhantomRoundAt = Date.now();
+        // surv_002: detect burst (consecutive phantom-only rounds exceeding threshold)
+        if (PHANTOM.consecutivePhantomOnlyRounds >= PHANTOM.BURST_THRESHOLD && !PHANTOM.recentPhantomBurst) {
+            PHANTOM.recentPhantomBurst = true;
+            logEvent('phantom', 'burst_detected', {
+                consecutive: PHANTOM.consecutivePhantomOnlyRounds,
+                threshold: PHANTOM.BURST_THRESHOLD
+            });
+        }
         return; // DO NOT contaminate drift metrics
     }
     if (phantomDominant) {
         PHANTOM.phantomDominantRoundsWindow++;
     }
     PHANTOM.consecutivePhantomOnlyRounds = 0;
+    PHANTOM.recentPhantomBurst = false; // surv_002: clear burst flag when real round occurs
 
     DRIFT.validRoundsInWindow++;
 
@@ -554,6 +572,8 @@ function computeQualityDrift() {
         },
         phantomOnlyRoundsWindow: PHANTOM.phantomOnlyRoundsWindow,
         phantomDominantRoundsWindow: PHANTOM.phantomDominantRoundsWindow,
+        phantomBurst: PHANTOM.recentPhantomBurst, // surv_002
+        phantomWindowInvalid: false, // placeholder, computed after score
         validRounds
     };
 
@@ -568,11 +588,26 @@ function computeQualityDrift() {
     const shouldEnterRepair = score < DRIFT.SCORE_REPAIR_ENTER;
     const shouldExitRepair = score >= DRIFT.SCORE_REPAIR_EXIT;
 
-    if (shouldEnterRepair) {
+    // surv_002: Phantom window guard — don't enter repair based on phantom-heavy windows.
+    // If most of the window was phantom-only rounds, the few valid rounds are not statistically
+    // meaningful. Only allow repair entrance when we have enough valid data.
+    const phantomRatio = PHANTOM.phantomOnlyRoundsWindow / Math.max(1, DRIFT.roundsInWindow);
+    const phantomWindowInvalid = phantomRatio > PHANTOM.WINDOW_INVALID_RATIO ||
+        DRIFT.validRoundsInWindow < PHANTOM.MIN_VALID_FOR_REPAIR;
+
+    if (shouldEnterRepair && !phantomWindowInvalid) {
         DRIFT.consecutiveBadWindows++;
-    } else {
+    } else if (!shouldEnterRepair) {
         DRIFT.consecutiveBadWindows = 0;
     }
+    // NOTE: if shouldEnterRepair && phantomWindowInvalid, we neither increment nor reset —
+    // the window is simply inconclusive. Log it for visibility.
+    if (phantomWindowInvalid && shouldEnterRepair) {
+        logEvent('phantom', 'repair_blocked_by_phantom_window', {
+            phantomRatio, validRounds: DRIFT.validRoundsInWindow, score
+        });
+    }
+    metrics.phantomWindowInvalid = phantomWindowInvalid; // surv_002: fill in actual value
 
     const shouldRepair = DRIFT.consecutiveBadWindows >= DRIFT.BAD_WINDOWS_TRIGGER;
 
@@ -611,6 +646,7 @@ function computeQualityDrift() {
     DRIFT.lastEffectiveState = null;
     PHANTOM.phantomOnlyRoundsWindow = 0;
     PHANTOM.phantomDominantRoundsWindow = 0;
+    PHANTOM.recentPhantomBurst = false; // surv_002: reset burst flag per window
     resetVerificationProtocol(); // cog_010
 
     return { metrics, score, shouldRepair, shouldExitRepair };
