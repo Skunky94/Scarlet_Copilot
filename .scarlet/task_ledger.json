@@ -1,23 +1,11 @@
 {
   "current_task": {
-    "id": "int_035",
-    "title": "exp_003: Structured Logging",
+    "id": "int_036",
+    "title": "cog_011: Activate Reflexion",
     "source": "goals-v3",
     "priority": "P1",
-    "started_at": "2026-03-29T17:55:34.451Z",
-    "status": "done",
-    "steps": [
-      {
-        "id": "s1",
-        "title": "logEvent() + rotation",
-        "status": "done"
-      },
-      {
-        "id": "s2",
-        "title": "Integrate in all subsystems",
-        "status": "done"
-      }
-    ]
+    "started_at": "2026-03-29T18:02:37.757Z",
+    "status": "done"
   },
   "completed_tasks": [
     {
@@ -79,6 +67,12 @@
       "title": "cog_010: Verification Evidence Protocol",
       "completed_at": "2026-03-29T17:55:34.451Z",
       "outcome": "cog_010 done - 3-level verification protocol"
+    },
+    {
+      "id": "int_035",
+      "title": "exp_003: Structured Logging",
+      "completed_at": "2026-03-29T18:02:37.757Z",
+      "outcome": "exp_003 done"
     }
   ],
   "backlog_external": [
@@ -108,7 +102,7 @@
     }
   ],
   "stats": {
-    "total_completed": 31,
+    "total_completed": 33,
     "total_abandoned": 0
   }
 }

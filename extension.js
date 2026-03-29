@@ -21,6 +21,66 @@ function cfg(key) {
     return vscode.workspace.getConfiguration('scarlet.guardian').get(key);
 }
 
+// ─── Centralized Policy Config (exp_002) ─────────────────────────────────────
+// Single source of truth for all tunable thresholds, weights, and intervals.
+// Subsystem objects reference POLICY.* instead of embedding magic numbers.
+
+const POLICY = {
+    drift: {
+        windowSize: 10,
+        badWindowsTrigger: 2,
+        scoreRepairEnter: 0.35,
+        scoreRepairExit: 0.40,
+        repairMaxRounds: 30,
+        repairNudgeInterval: 5,
+        weights: {
+            verification: 0.25,
+            progress: 0.25,
+            depth: 0.20,
+            stability: 0.15,
+            browser: 0.15
+        }
+    },
+    verification: {
+        signalTimeoutMs: 60000
+    },
+    compulsiveLoop: {
+        softThreshold: 3,
+        hardThreshold: 8
+    },
+    reflexion: {
+        maxInPrompt: 3,
+        highPhantomThreshold: 0.5,
+        highPhantomRoundsTrigger: 4,
+        prolongedRepairTrigger: 10,
+        pendingRoundsRelax: 5,
+        expiryRounds: 10
+    },
+    rolling: {
+        maxRounds: 10,
+        gptConsultIdleThreshold: 5,
+        decisionCollapseThreshold: 4
+    },
+    nudge: {
+        opBackoffRounds: 4,
+        metaBackoffRounds: 6
+    },
+    stateResolution: {
+        freshThresholdMs: 15000,
+        staleThresholdMs: 45000
+    },
+    idle: {
+        pollIntervalMs: 3000,
+        lifeIntervalMs: 300000,
+        maxTimeoutMs: 600000,
+        lifeDelayMs: 15000
+    },
+    logging: {
+        maxEventFileBytes: 512 * 1024,
+        maxMetricsFileLines: 2000
+    }
+};
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function getWorkspaceRoot() {
@@ -56,7 +116,7 @@ const METRICS = {
 
 const ROLLING = {
     lastRounds: [],              // circular buffer, max 10 entries
-    MAX_ROUNDS: 10,
+    MAX_ROUNDS: POLICY.rolling.maxRounds,
     productivityScore: 1.0,      // 0-1 ratio of real tool calls to total
     phantomRatioAvg: 0,
     roundsSinceVerification: 0,
@@ -66,10 +126,10 @@ const ROLLING = {
     // GPT consultation tracking
     lastGptConsultAt: 0,         // timestamp of last GPT consultation
     roundsSinceGptConsult: 0,    // rounds since last GPT interaction
-    GPT_CONSULT_IDLE_THRESHOLD: 5, // idle rounds without GPT before nudge fires
+    GPT_CONSULT_IDLE_THRESHOLD: POLICY.rolling.gptConsultIdleThreshold,
     // Decision Collapse Mechanism (v2.9.0)
     roundsSinceLastDecision: 0,  // rounds since a MEANINGFUL state change
-    DECISION_COLLAPSE_THRESHOLD: 4, // rounds before forced decision
+    DECISION_COLLAPSE_THRESHOLD: POLICY.rolling.decisionCollapseThreshold,
     lastKnownTaskId: null,       // for detecting task changes
     lastKnownTaskStatus: null,   // for detecting status changes
     lastKnownAgentState: null,   // for detecting state transitions
@@ -98,12 +158,12 @@ function pushRollingRound(toolCalls, phantomCalls) {
 const REFLEXION = {
     pendingReflection: null,     // {trigger, context} — set by failure detectors, consumed by shouldNudge
     lastReflectionMtime: 0,      // mtime of reflections.jsonl — to detect when LLM writes one
-    MAX_REFLECTIONS_IN_PROMPT: 3, // how many recent reflections to embed in prompts
+    MAX_REFLECTIONS_IN_PROMPT: POLICY.reflexion.maxInPrompt,
     REFLECTION_FILE: 'reflections.jsonl',
     // cog_011: counters for high phantom ratio trigger
     consecutiveHighPhantomRounds: 0,
-    HIGH_PHANTOM_THRESHOLD: 0.5,
-    HIGH_PHANTOM_ROUNDS_TRIGGER: 4
+    HIGH_PHANTOM_THRESHOLD: POLICY.reflexion.highPhantomThreshold,
+    HIGH_PHANTOM_ROUNDS_TRIGGER: POLICY.reflexion.highPhantomRoundsTrigger
 };
 
 function getReflectionsPath() {
@@ -164,7 +224,7 @@ function checkReflectionWritten() {
 // separates phantom rounds, adds stability metric.
 
 const DRIFT = {
-    WINDOW_SIZE: 10,
+    WINDOW_SIZE: POLICY.drift.windowSize,
     roundsInWindow: 0,
     validRoundsInWindow: 0,          // exclude phantom-only rounds
     // Verification evidence
@@ -184,15 +244,15 @@ const DRIFT = {
     gptConsultationRounds: 0,       // rounds with detected GPT consultation
     // Output
     consecutiveBadWindows: 0,
-    BAD_WINDOWS_TRIGGER: 2,
-    SCORE_REPAIR_ENTER: 0.35,
-    SCORE_REPAIR_EXIT: 0.40,
+    BAD_WINDOWS_TRIGGER: POLICY.drift.badWindowsTrigger,
+    SCORE_REPAIR_ENTER: POLICY.drift.scoreRepairEnter,
+    SCORE_REPAIR_EXIT: POLICY.drift.scoreRepairExit,
     lastDriftCheck: null,
     inRepair: false,
     repairRoundsElapsed: 0,
-    REPAIR_MAX_ROUNDS: 30,
+    REPAIR_MAX_ROUNDS: POLICY.drift.repairMaxRounds,
     repairNudgeCooldown: 0,
-    REPAIR_NUDGE_INTERVAL: 5
+    REPAIR_NUDGE_INTERVAL: POLICY.drift.repairNudgeInterval
 };
 
 // ─── Phantom Tracker (v2.11.0) ───────────────────────────────────────────────
@@ -234,7 +294,7 @@ const VERIFICATION = {
     signalCount: 0,
     evidenceCount: 0,
     completionCount: 0,
-    SIGNAL_TIMEOUT_MS: 60000  // signal expires after 60s without evidence
+    SIGNAL_TIMEOUT_MS: POLICY.verification.signalTimeoutMs
 };
 
 // Advance verification state machine for this round.
@@ -490,13 +550,13 @@ function computeQualityDrift() {
         validRounds
     };
 
-    // Weighted score — v2.12: rebalanced with browser workflow component
+    // Weighted score — v2.12: rebalanced with browser workflow component (exp_002: from POLICY)
     const score =
-        verificationEvidenceScore * 0.25 +
-        progressEventScore * 0.25 +
-        depthScore * 0.20 +
-        stabilityScore * 0.15 +
-        browserWorkflowScore * 0.15;
+        verificationEvidenceScore * POLICY.drift.weights.verification +
+        progressEventScore * POLICY.drift.weights.progress +
+        depthScore * POLICY.drift.weights.depth +
+        stabilityScore * POLICY.drift.weights.stability +
+        browserWorkflowScore * POLICY.drift.weights.browser;
 
     const shouldEnterRepair = score < DRIFT.SCORE_REPAIR_ENTER;
     const shouldExitRepair = score >= DRIFT.SCORE_REPAIR_EXIT;
@@ -598,8 +658,8 @@ function exitRepairState(reason) {
 
 const COMPULSIVE_LOOP = {
     consecutivePhantomOnlyRounds: 0,
-    SOFT_THRESHOLD: 3,    // inject "you're in equilibrium, stop calling"
-    HARD_THRESHOLD: 8,    // cooldown + force into idle polling
+    SOFT_THRESHOLD: POLICY.compulsiveLoop.softThreshold,
+    HARD_THRESHOLD: POLICY.compulsiveLoop.hardThreshold,
     lastResetTime: 0,
     coolingUntil: 0        // non-blocking cooldown: skip rounds until Date.now() > this
 };
@@ -1209,8 +1269,8 @@ function resolveEffectiveState({ agentState, inferredState, inRepair, ledgerSnap
         STATE_MODEL.declaredStateAt = Date.now();
     }
     const declaredAgeMs = Date.now() - (STATE_MODEL.declaredStateAt || 0);
-    const FRESH_THRESHOLD_MS = 15000;  // 15s: full freshness
-    const STALE_THRESHOLD_MS = 45000;  // 45s: completely stale
+    const FRESH_THRESHOLD_MS = POLICY.stateResolution.freshThresholdMs;
+    const STALE_THRESHOLD_MS = POLICY.stateResolution.staleThresholdMs;
     const declaredFreshness =
         declaredAgeMs <= FRESH_THRESHOLD_MS ? 1.0 :
         declaredAgeMs >= STALE_THRESHOLD_MS ? 0.0 :
@@ -1259,8 +1319,8 @@ const NUDGE_STATE = {
     lastMetaNudgeType: null,
     roundsSinceLastOperationalNudge: 999,
     roundsSinceLastMetaNudge: 999,
-    OP_BACKOFF_ROUNDS: 4,
-    META_BACKOFF_ROUNDS: 6
+    OP_BACKOFF_ROUNDS: POLICY.nudge.opBackoffRounds,
+    META_BACKOFF_ROUNDS: POLICY.nudge.metaBackoffRounds
 };
 
 function shouldOperationalNudge(agentState, rolling, ledger) {
@@ -1337,7 +1397,7 @@ function shouldMetaNudge(agentState, ledger, operationalNudge, rolling) {
             candidate = 'reflect';
         } else if (REFLEXION.pendingReflection.requestedAt) {
             const roundsPending = Math.floor((Date.now() - REFLEXION.pendingReflection.requestedAt) / 5000);
-            if (roundsPending >= 5) {
+            if (roundsPending >= POLICY.reflexion.pendingRoundsRelax) {
                 candidate = 'reflect';
             }
         }
@@ -1368,8 +1428,8 @@ function shouldMetaNudge(agentState, ledger, operationalNudge, rolling) {
 // All events go to .scarlet/events.jsonl for unified offline analytics.
 
 const LOG_CONFIG = {
-    MAX_FILE_SIZE: 512 * 1024,    // 512KB — rotate when exceeded
-    RETENTION_LINES: 2000,         // keep last 2000 lines after rotation
+    MAX_FILE_SIZE: POLICY.logging.maxEventFileBytes,
+    RETENTION_LINES: POLICY.logging.maxMetricsFileLines,
     logPath: null                  // cached path
 };
 
@@ -1839,8 +1899,8 @@ async function onLoopCheck(roundData, loopInstance) {
         }
         if (REFLEXION.pendingReflection && REFLEXION.pendingReflection.requestedAt) {
             const roundsSinceRequest = Math.floor((Date.now() - REFLEXION.pendingReflection.requestedAt) / 5000);
-            if (roundsSinceRequest > 10) {
-                console.log('[LOOP-GUARDIAN] Reflection request expired (10+ rounds without writing)');
+            if (roundsSinceRequest > POLICY.reflexion.expiryRounds) {
+                console.log('[LOOP-GUARDIAN] Reflection request expired (' + POLICY.reflexion.expiryRounds + '+ rounds without writing)');
                 REFLEXION.pendingReflection = null;
             }
         }
@@ -1881,8 +1941,8 @@ async function onLoopCheck(roundData, loopInstance) {
         // v2.11: Repair escape valve — auto-exit after REPAIR_MAX_ROUNDS
         if (DRIFT.inRepair) {
             DRIFT.repairRoundsElapsed++;
-            // cog_011: prolonged_repair reflexion trigger — if stuck in repair for 10+ rounds
-            if (DRIFT.repairRoundsElapsed === 10 && !REFLEXION.pendingReflection) {
+            // cog_011: prolonged_repair reflexion trigger — if stuck in repair for N rounds
+            if (DRIFT.repairRoundsElapsed === POLICY.reflexion.prolongedRepairTrigger && !REFLEXION.pendingReflection) {
                 requestReflection('prolonged_repair', {
                     roundsInRepair: DRIFT.repairRoundsElapsed,
                     productivity: ROLLING.productivityScore,
@@ -2057,11 +2117,11 @@ async function onLoopCheck(roundData, loopInstance) {
 
     while (true) {
         // Bug J fix: re-read config each iteration so changes take effect without restart
-        const basePollInterval = cfg('idlePollIntervalMs') || 3000;
+        const basePollInterval = cfg('idlePollIntervalMs') || POLICY.idle.pollIntervalMs;
         const idleLifeEnabled = cfg('idleLife') !== false;
-        const idleLifeDelay = cfg('idleLifeDelayMs') || 15000;
-        const idleLifeInterval = cfg('idleLifeIntervalMs') || 300000;
-        const maxIdleMs = cfg('maxIdleTimeoutMs') || 600000; // surv_005: 10min max idle
+        const idleLifeDelay = cfg('idleLifeDelayMs') || POLICY.idle.lifeDelayMs;
+        const idleLifeInterval = cfg('idleLifeIntervalMs') || POLICY.idle.lifeIntervalMs;
+        const maxIdleMs = cfg('maxIdleTimeoutMs') || POLICY.idle.maxTimeoutMs; // surv_005: max idle
 
         // surv_005: Max idle timeout — prevent infinite opaque loop
         if (Date.now() - idleStartTime > maxIdleMs) {

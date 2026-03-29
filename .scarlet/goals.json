@@ -1,6 +1,6 @@
 {
   "schema_version": "3.0.0",
-  "last_updated": "2026-03-29T17:55:34.448Z",
+  "last_updated": "2026-03-29T18:02:37.754Z",
   "near_impossible_goal": "Autonomous persistent entity with eventual embodiment",
   "notes": "Goal graph v3. Co-designed with GPT. Focus: robustezza runtime, qualita semantica, modularizzazione, crescita autonoma.",
   "layers": [
@@ -297,7 +297,7 @@
           "title": "Activate Reflexion in Production",
           "description": "Piu trigger points per il meccanismo di reflexion.",
           "priority": "P1",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             "cog_008",
             "cog_010"
@@ -306,7 +306,9 @@
             "Reflexion trigger su drift spike",
             "Reflexion trigger su repeated failure",
             "Log strutturato in reflections.jsonl"
-          ]
+          ],
+          "artifact": "6 reflexion triggers in extension.js",
+          "notes": "v2.12: 4 new triggers + relaxed scheduling. Total 6 triggers."
         },
         {
           "id": "cog_012",
