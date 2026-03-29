@@ -782,7 +782,7 @@
           "title": "Experimental Branch Prototyping",
           "description": "Prototipazione su branch sperimentali per feature rischiose.",
           "priority": "P2",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             "exp_001",
             "exp_005"
@@ -791,7 +791,8 @@
             "Branch per esperimenti",
             "Merge solo dopo test",
             "Rollback facile"
-          ]
+          ],
+          "completed": "2026-03-30"
         },
         {
           "id": "idle_009",
