@@ -1,6 +1,6 @@
 {
   "schema_version": "3.0.0",
-  "last_updated": "2026-03-29T18:59:43.034Z",
+  "last_updated": "2026-03-29T19:07:37.482Z",
   "near_impossible_goal": "Autonomous persistent entity with eventual embodiment",
   "notes": "Goal graph v3. Co-designed with GPT. Focus: robustezza runtime, qualita semantica, modularizzazione, crescita autonoma.",
   "layers": [
@@ -773,7 +773,7 @@
           "title": "Metric Validity Review",
           "description": "Review periodica della validita delle metriche raccolte.",
           "priority": "P1",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             "cog_007",
             "exp_003"
@@ -782,7 +782,9 @@
             "Metriche validate vs comportamento reale",
             "Metriche inutili rimosse",
             "Nuove metriche proposte"
-          ]
+          ],
+          "artifact": "metric-validity-review.md + METRICS.totalRounds fix",
+          "notes": "v2.12: Validated 30+ metrics, found/fixed totalRounds bug, proposed 3 new metrics."
         },
         {
           "id": "idle_010",
