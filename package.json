@@ -21,6 +21,10 @@
                 "title": "Loop Guardian: Apri Pannello"
             },
             {
+                "command": "scarlet.guardian.metrics",
+                "title": "Loop Guardian: Metrics Dashboard"
+            },
+            {
                 "command": "scarlet.guardian.sendMessage",
                 "title": "Loop Guardian: Invia Messaggio"
             },

@@ -596,6 +596,46 @@ suite('Decision Journal', () => {
     });
 });
 
+// ─── Suite: Metrics Dashboard (exp_009) ──────────────────────────────────────
+
+suite('Metrics Dashboard', () => {
+    test('METRICS_HISTORY has expected keys', () => {
+        const h = T.METRICS_HISTORY;
+        assert.ok(Array.isArray(h.drift), 'drift should be array');
+        assert.ok(Array.isArray(h.state), 'state should be array');
+        assert.ok(Array.isArray(h.productivity), 'productivity should be array');
+    });
+
+    test('pushMetricsHistory accumulates entries', () => {
+        T.METRICS_HISTORY.drift.length = 0;
+        T.METRICS_HISTORY.state.length = 0;
+        T.METRICS_HISTORY.productivity.length = 0;
+        T.pushMetricsHistory();
+        assert.strictEqual(T.METRICS_HISTORY.drift.length, 1);
+        assert.strictEqual(T.METRICS_HISTORY.state.length, 1);
+        assert.strictEqual(T.METRICS_HISTORY.productivity.length, 1);
+    });
+
+    test('pushMetricsHistory drift entry has correct shape', () => {
+        const entry = T.METRICS_HISTORY.drift[0];
+        assert.ok(typeof entry.ts === 'number', 'ts should be number');
+        assert.ok(typeof entry.score === 'number', 'score should be number');
+        assert.ok(typeof entry.verification === 'number', 'verification should be number');
+        assert.ok(typeof entry.depth === 'number', 'depth should be number');
+        assert.ok(typeof entry.progress === 'number', 'progress should be number');
+        assert.ok(typeof entry.stability === 'number', 'stability should be number');
+    });
+
+    test('pushMetricsHistory respects max entries', () => {
+        T.METRICS_HISTORY.drift.length = 0;
+        T.METRICS_HISTORY.state.length = 0;
+        T.METRICS_HISTORY.productivity.length = 0;
+        for (let i = 0; i < 130; i++) T.pushMetricsHistory();
+        assert.ok(T.METRICS_HISTORY.drift.length <= 120, 'drift history should be capped at 120');
+        assert.ok(T.METRICS_HISTORY.state.length <= 120, 'state history should be capped at 120');
+    });
+});
+
 // ─── Summary ─────────────────────────────────────────────────────────────────
 
 console.log('\n' + '─'.repeat(50));
