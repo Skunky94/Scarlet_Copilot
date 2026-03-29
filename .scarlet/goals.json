@@ -1,6 +1,6 @@
 {
   "schema_version": "3.0.0",
-  "last_updated": "2026-03-29T19:27:59.689Z",
+  "last_updated": "2026-03-29T19:30:55.214Z",
   "near_impossible_goal": "Autonomous persistent entity with eventual embodiment",
   "notes": "Goal graph v3. Co-designed with GPT. Focus: robustezza runtime, qualita semantica, modularizzazione, crescita autonoma.",
   "layers": [
@@ -718,14 +718,16 @@
           "title": "Cognitive Journaling",
           "description": "Journaling strutturato delle decisioni cognitive significative.",
           "priority": "P2",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             "cog_011"
           ],
           "completion_criteria": [
             "Journal entry per decisione significativa",
             "Pattern di decisione tracciati"
-          ]
+          ],
+          "artifact": "logDecision(), getRecentDecisions(), cognitive_journal_review idle task, 5 tests",
+          "notes": "v2.12: Decision journal with repair integration. 13 idle tasks total. 51/51 tests."
         },
         {
           "id": "idle_006",
