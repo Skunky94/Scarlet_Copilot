@@ -1,6 +1,6 @@
 {
   "schema_version": "3.0.0",
-  "last_updated": "2026-03-29T18:46:50.738Z",
+  "last_updated": "2026-03-29T18:50:14.370Z",
   "near_impossible_goal": "Autonomous persistent entity with eventual embodiment",
   "notes": "Goal graph v3. Co-designed with GPT. Focus: robustezza runtime, qualita semantica, modularizzazione, crescita autonoma.",
   "layers": [
@@ -820,7 +820,7 @@
           "title": "Idle Task Library",
           "description": "Libreria di task idle predefiniti e prioritizzati.",
           "priority": "P1",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             "auto_005",
             "auto_007"
@@ -829,7 +829,9 @@
             "Catalogo task idle",
             "Priorita dinamica",
             "Rotazione per non ripetere"
-          ]
+          ],
+          "artifact": "IDLE_TASK_LIBRARY + selectIdleTask + rotation",
+          "notes": "v2.12: 8 categorized idle tasks, dynamic priority with recency boost, cooldown-based rotation."
         }
       ]
     },

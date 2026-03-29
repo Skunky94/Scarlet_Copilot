@@ -1,12 +1,5 @@
 {
-  "current_task": {
-    "id": "int_042",
-    "title": "idle_012: Idle Task Library",
-    "source": "goals-v3",
-    "priority": "P1",
-    "started_at": "2026-03-29T18:48:08.566Z",
-    "status": "in-progress"
-  },
+  "current_task": null,
   "completed_tasks": [
     {
       "id": "int_021",
@@ -103,12 +96,18 @@
       "title": "surv_002: Stabilize Phantom Tool Boundary",
       "completed_at": "2026-03-29T18:46:50.741Z",
       "outcome": "surv_002 done"
+    },
+    {
+      "id": "int_042",
+      "title": "idle_012: Idle Task Library",
+      "completed_at": "2026-03-29T18:50:14.373Z",
+      "outcome": "idle_012 done"
     }
   ],
   "backlog_external": [],
   "backlog_internal": [],
   "stats": {
-    "total_completed": 39,
+    "total_completed": 40,
     "total_abandoned": 0
   }
 }
