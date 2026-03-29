@@ -216,6 +216,8 @@ function requestReflection(trigger, extraContext) {
         requestedAt: Date.now()
     };
     console.log('[LOOP-GUARDIAN] Reflexion requested: ' + trigger);
+    // idle_010: Log autonomy failure for retrospective analysis
+    logEvent('autonomy', 'failure', { type: trigger, context: extraContext || {} });
 }
 
 function checkReflectionWritten() {
@@ -1805,6 +1807,26 @@ const IDLE_TASK_LIBRARY = [
             '→ What problems have you noticed during recent work?\n' +
             '→ What capabilities are missing?\n' +
             '→ Add concrete, measurable goals to goals.json if warranted.'
+    },
+    {
+        id: 'autonomy_retrospective',
+        label: 'Review autonomy failures',
+        cooldownMs: 3600000, // 1 hour
+        priority: () => {
+            const retro = generateAutonomyRetrospective();
+            return retro && retro.total > 0 ? 0.7 : 0.15;
+        },
+        directive: () => {
+            const retro = generateAutonomyRetrospective();
+            if (!retro || retro.total === 0) {
+                return 'RETROSPECTIVE: No autonomy failures recorded. Continue monitoring.';
+            }
+            return 'AUTONOMY RETROSPECTIVE (idle_010): Review failure patterns.\n' +
+                retro.summary + '\n' +
+                '→ For each pattern: identify root cause and whether current mitigations are sufficient.\n' +
+                '→ If a new mitigation is needed, create a goal in goals.json.\n' +
+                '→ Write findings to /memories/ for persistence.';
+        }
     }
 ];
 
@@ -1837,6 +1859,54 @@ function getIdleTaskDirective() {
     const directive = typeof task.directive === 'function' ? task.directive() : task.directive;
     if (!directive) return null;
     return '[IDLE TASK: ' + task.label + ']\n' + directive;
+}
+
+// ─── idle_010: Autonomy Failure Retrospective ────────────────────────────────
+// Reads events.jsonl, extracts autonomy failure events, categorizes patterns,
+// writes a summary. Called as an idle task or on demand.
+
+function generateAutonomyRetrospective() {
+    const root = getWorkspaceRoot();
+    if (!root) return null;
+    const eventsPath = path.join(root, '.scarlet', 'events.jsonl');
+    if (!fs.existsSync(eventsPath)) return null;
+
+    try {
+        const lines = fs.readFileSync(eventsPath, 'utf8').trim().split('\n');
+        const failures = [];
+        for (const line of lines) {
+            try {
+                const e = JSON.parse(line);
+                if (e.subsystem === 'autonomy' && e.event === 'failure') {
+                    failures.push(e);
+                }
+            } catch {}
+        }
+        if (!failures.length) return { total: 0, patterns: {}, summary: 'No autonomy failures recorded.' };
+
+        // Categorize by type
+        const patterns = {};
+        for (const f of failures) {
+            const type = (f.data && f.data.type) || 'unknown';
+            if (!patterns[type]) patterns[type] = { count: 0, lastAt: null, contexts: [] };
+            patterns[type].count++;
+            patterns[type].lastAt = f.ts;
+            if (patterns[type].contexts.length < 3) {
+                patterns[type].contexts.push(f.data.context || {});
+            }
+        }
+
+        // Build summary
+        const sorted = Object.entries(patterns).sort((a, b) => b[1].count - a[1].count);
+        let summary = 'AUTONOMY FAILURE RETROSPECTIVE\n';
+        summary += 'Total failures: ' + failures.length + '\n';
+        summary += 'Patterns:\n';
+        for (const [type, data] of sorted) {
+            summary += '  - ' + type + ': ' + data.count + 'x (last: ' + data.lastAt + ')\n';
+        }
+
+        return { total: failures.length, patterns, summary };
+    } catch { return null; }
 }
 
 const DEFAULT_IDLE_CYCLE_TEXT = '[SCARLET-IDLE-LIFE] No user input. Cognitive cycle engaged.\n\n' +

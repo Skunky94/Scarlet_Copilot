@@ -1,5 +1,12 @@
 {
-  "current_task": null,
+  "current_task": {
+    "id": "int_043",
+    "title": "idle_010: Autonomy Failure Retrospective",
+    "source": "goals-v3",
+    "priority": "P1",
+    "started_at": "2026-03-29T18:51:22.667Z",
+    "status": "in-progress"
+  },
   "completed_tasks": [
     {
       "id": "int_021",
