@@ -1643,14 +1643,20 @@ const DEFAULT_IDLE_CYCLE_TEXT = '[SCARLET-IDLE-LIFE] No user input. Cognitive cy
     '  → If complete but not reviewed: review the output for quality.\n' +
     '  → If reviewed but not tested: test and validate it.\n' +
     '  → If validated: proceed to STEP 2.\n\n' +
-    'STEP 2 — GOALS: Check your goals (.scarlet/goals.json, /memories/).\n' +
-    '  → Pick the most coherent goal given your current state and recent work.\n' +
-    '  → If a goal exists: work on it.\n' +
-    '  → If no actionable goals or blocked: proceed to STEP 3.\n\n' +
-    'STEP 3 — META-ANALYSIS: Analyze yourself — architecture, metacognition, capabilities.\n' +
-    '  → Identify gaps, generate new goals, find paths to build new systems.\n' +
-    '  → Then return to STEP 2 with fresh objectives.\n\n' +
-    'This cycle never terminates. Always take action — never output only text.';
+    'STEP 2 — GOALS: Check .scarlet/goals.json for actionable goals.\n' +
+    '  → Pick the highest-priority unblocked goal.\n' +
+    '  → If a goal exists: plan steps in task_ledger.json and BEGIN WORKING.\n' +
+    '  → If no actionable goals: proceed to STEP 3.\n\n' +
+    'STEP 3 — CONCRETE MAINTENANCE:\n' +
+    '  → Run tests, fix known bugs, improve documentation with SPECIFIC changes.\n' +
+    '  → Generate new goals from observed problems (not from abstract theorizing).\n' +
+    '  → If truly nothing to do: consult GPT for direction, then return to STEP 2.\n\n' +
+    'ANTI-THEATER RULES (auto_005):\n' +
+    '  → Every idle action MUST produce a file change, commit, or state update.\n' +
+    '  → No philosophical reflection without a concrete deliverable.\n' +
+    '  → No "exploring" without writing findings to a specific file.\n' +
+    '  → No generating frameworks, taxonomies, or diagrams that no one requested.\n' +
+    '  → If you catch yourself writing analysis-of-analysis, STOP and do real work.';
 
 function getIdleCycleText() {
     const root = getWorkspaceRoot();
@@ -2196,6 +2202,15 @@ async function onLoopCheck(roundData, loopInstance) {
                 }
                 METRICS.state = 'Living';
                 METRICS.idleLifeTriggers++;
+                // auto_005: log idle trigger quality for anti-theater tracking
+                logEvent('idle', 'life_trigger', {
+                    purpose: hasExternalBacklog() ? 'external_task' :
+                             hasInternalBacklog() ? 'internal_task' :
+                             currentState.state === 'executing' ? 'verify' :
+                             ROLLING.roundsSinceGptConsult >= ROLLING.GPT_CONSULT_IDLE_THRESHOLD ? 'gpt_consult' : 'idle_life',
+                    productivity: ROLLING.productivityScore,
+                    idleCycles: METRICS.idleCycles
+                });
                 logRoundMetrics(roundData, 'idle-life');
                 updatePanel();
                 return false;
