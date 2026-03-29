@@ -1,27 +1,27 @@
 {
     "current_task":  {
-                         "id":  "int_029",
-                         "started_at":  "2026-03-29T20:25:00Z",
-                         "source":  "goals-v3",
+                         "id":  "int_030",
+                         "started_at":  "2026-03-29T20:45:00Z",
+                         "source":  "goals-v3-critical-path",
                          "priority":  "P1",
                          "steps":  [
                                        {
                                            "status":  "done",
-                                           "title":  "cog_012: State Audit Logging",
+                                           "title":  "Add post_task_handoff nudge type",
                                            "id":  "s1"
                                        },
                                        {
                                            "status":  "done",
-                                           "title":  "auto_007: Goal-Driven Idle Selection",
+                                           "title":  "Auto-promote in shouldMetaNudge",
                                            "id":  "s2"
                                        },
                                        {
                                            "status":  "done",
-                                           "title":  "surv_005: Reduce Idle Blindness",
+                                           "title":  "Deploy + commit",
                                            "id":  "s3"
                                        }
                                    ],
-                         "title":  "surv_005 + cog_012 + auto_007 batch",
+                         "title":  "auto_002: Autonomous Post-Task Handoff",
                          "status":  "done"
                      },
     "completed_tasks":  [
@@ -95,7 +95,7 @@
                              }
                          ],
     "stats":  {
-                  "total_completed":  26,
+                  "total_completed":  27,
                   "total_abandoned":  0
               }
 }
