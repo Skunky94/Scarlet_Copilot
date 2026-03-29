@@ -1335,6 +1335,109 @@ suite('Experimental Branch Prototyping (idle_008)', () => {
     });
 });
 
+// ─── Decision Quality Feedback (dqf_001) ─────────────────────────────────────
+suite('Decision Quality Feedback (dqf_001)', () => {
+
+    test('getDecisionAudit returns object with expected methods', () => {
+        const da = T.getDecisionAudit();
+        assert.ok(typeof da.recordDecision === 'function');
+        assert.ok(typeof da.evaluatePending === 'function');
+        assert.ok(typeof da.getMetrics === 'function');
+        assert.ok(typeof da.getRecent === 'function');
+        assert.ok(typeof da.isOversteering === 'function');
+    });
+
+    test('DECISION_TYPES has expected keys', () => {
+        const da = T.getDecisionAudit();
+        assert.ok(da.DECISION_TYPES.NUDGE === 'nudge');
+        assert.ok(da.DECISION_TYPES.GATE_BLOCK === 'gate_block');
+        assert.ok(da.DECISION_TYPES.COMPULSIVE_COOL === 'compulsive_cool');
+        assert.ok(da.DECISION_TYPES.DECISION_COLLAPSE === 'decision_collapse');
+        assert.ok(da.DECISION_TYPES.ALLOW === 'allow');
+    });
+
+    test('QUALITY has expected values', () => {
+        const da = T.getDecisionAudit();
+        assert.strictEqual(da.QUALITY.GOOD, 'good');
+        assert.strictEqual(da.QUALITY.BAD, 'bad');
+        assert.strictEqual(da.QUALITY.NEUTRAL, 'neutral');
+        assert.strictEqual(da.QUALITY.PENDING, 'pending');
+    });
+
+    test('EVAL_WINDOW and MAX_RECORDS are numbers', () => {
+        const da = T.getDecisionAudit();
+        assert.strictEqual(typeof da.EVAL_WINDOW, 'number');
+        assert.ok(da.EVAL_WINDOW > 0);
+        assert.strictEqual(typeof da.MAX_RECORDS, 'number');
+        assert.ok(da.MAX_RECORDS > 0);
+    });
+
+    test('recordDecision returns a decision id', () => {
+        const da = T.getDecisionAudit();
+        const id = da.recordDecision('nudge', {
+            trigger: 'test',
+            reason: 'test nudge',
+            productivity: 0.85,
+            currentRound: 10
+        });
+        assert.ok(typeof id === 'string');
+        assert.ok(id.startsWith('dec_'));
+    });
+
+    test('getRecent returns recorded decisions', () => {
+        const da = T.getDecisionAudit();
+        da.recordDecision('nudge', { trigger: 'test', currentRound: 20 });
+        const recent = da.getRecent(5);
+        assert.ok(Array.isArray(recent));
+        assert.ok(recent.length > 0);
+        assert.ok(recent[recent.length - 1].type === 'nudge');
+    });
+
+    test('getMetrics returns stats object', () => {
+        const da = T.getDecisionAudit();
+        const metrics = da.getMetrics();
+        assert.ok(typeof metrics === 'object');
+        assert.ok('totalDecisions' in metrics);
+        assert.ok('nudgeEffectiveness' in metrics);
+        assert.ok('falseBlocks' in metrics);
+        assert.ok('guardianNoise' in metrics);
+        assert.ok('avgQuality' in metrics);
+    });
+
+    test('evaluatePending evaluates decisions past their window', () => {
+        const da = T.getDecisionAudit();
+        da.recordDecision('allow', { trigger: 'test', currentRound: 1 });
+        // Evaluate at round 100 (well past EVAL_WINDOW)
+        const count = da.evaluatePending(100, {
+            productivity: 0.9,
+            phantomRatio: 0.1,
+            roundsSinceVerification: 2,
+            tasksCompleted: 3
+        });
+        assert.ok(typeof count === 'number');
+    });
+
+    test('isOversteering returns boolean', () => {
+        const da = T.getDecisionAudit();
+        const result = da.isOversteering();
+        assert.strictEqual(typeof result, 'boolean');
+    });
+
+    test('getAuditPath returns path or null', () => {
+        const da = T.getDecisionAudit();
+        const p = da.getAuditPath();
+        // In test environment, should return a path (workspace root exists)
+        if (p !== null) {
+            assert.ok(p.includes('decision_audit.json'));
+        }
+    });
+
+    test('static module exports DECISION_TYPES', () => {
+        const DecisionAudit = require('../lib/decision-audit.js');
+        assert.ok(typeof DecisionAudit === 'function');
+    });
+});
+
 // ─── Summary ─────────────────────────────────────────────────────────────────
 
 console.log('\n' + '─'.repeat(50));

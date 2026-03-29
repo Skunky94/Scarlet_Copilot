@@ -2,13 +2,17 @@
     "name": "copilot-loop-guardian",
     "displayName": "Scarlet Loop Guardian",
     "description": "Persistenza infinita per il ciclo agentico di Copilot Chat + pannello per inviare messaggi all'agente durante i cicli.",
-    "version": "2.12.0",
+    "version": "2.13.0",
     "publisher": "scarlet",
     "engines": {
         "vscode": "^1.100.0"
     },
-    "categories": ["Other"],
-    "activationEvents": ["onStartupFinished"],
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onStartupFinished"
+    ],
     "main": "./extension.js",
     "contributes": {
         "commands": [

@@ -639,6 +639,15 @@ function getBranch() {
     return _branch;
 }
 
+// ─── Decision Quality Feedback (lazy-loaded from lib/decision-audit.js, dqf_001) ─
+let _decisionAudit = null;
+function getDecisionAudit() {
+    if (!_decisionAudit) _decisionAudit = require('./lib/decision-audit')({
+        fs, path: require('path'), getWorkspaceRoot
+    });
+    return _decisionAudit;
+}
+
 function shouldBypassToolLimit(_request) {
     if (!cfg('enabled')) return false;
     return cfg('bypassToolLimit') === true;
@@ -728,6 +737,22 @@ function injectNudge(roundData, loopInstance, purpose, agentState) {
     METRICS.nudgesInjected++;
     console.log('[LOOP-GUARDIAN] Nudge injected: ' + purpose);
     logEvent('nudge', 'injected', { purpose, state: agentState ? agentState.state : null });
+
+    // DQF: record nudge decision
+    try {
+        const decType = purpose === 'gpt_prechange' ? 'structural_review' :
+                        purpose === 'repair' ? 'nudge' : 'nudge';
+        getDecisionAudit().recordDecision(decType, {
+            trigger: purpose,
+            stateInference: agentState ? agentState.state : null,
+            reason: purpose,
+            productivity: ROLLING.productivity,
+            phantomRatio: ROLLING.phantomRatio,
+            roundsSinceVerification: ROLLING.roundsSinceVerification,
+            roundsSinceDecision: ROLLING.roundsSinceLastDecision,
+            currentRound: METRICS.totalRounds
+        });
+    } catch (e) { console.warn('[DQF] record error: ' + e.message); }
 }
 
 async function onLoopCheck(roundData, loopInstance) {
@@ -988,6 +1013,18 @@ async function onLoopCheck(roundData, loopInstance) {
                 COMPULSIVE_LOOP.coolingUntil = Date.now() + 30000; // non-blocking 30s cooldown
                 console.log('[LOOP-GUARDIAN] COMPULSIVE LOOP HARD STOP after ' + count + ' phantom rounds. 30s non-blocking cooldown.');
 
+                // DQF: record compulsive cooling decision
+                try {
+                    getDecisionAudit().recordDecision('compulsive_cool', {
+                        trigger: 'compulsive_loop_hard',
+                        stateInference: agentState ? agentState.state : null,
+                        reason: count + ' consecutive phantom-only rounds',
+                        productivity: ROLLING.productivityScore,
+                        phantomRatio: ROLLING.phantomRatioAvg,
+                        currentRound: METRICS.totalRounds
+                    });
+                } catch (e) { console.warn('[DQF] record error: ' + e.message); }
+
                 // Reflexion: request lesson extraction after compulsive loop
                 requestReflection('compulsive_loop', {
                     phantomRounds: count,
@@ -1097,6 +1134,16 @@ async function onLoopCheck(roundData, loopInstance) {
             injectMessage(roundData, loopInstance, msg);
             logRoundMetrics(roundData, 'message');
         }
+
+        // DQF: evaluate pending decisions
+        try {
+            getDecisionAudit().evaluatePending(METRICS.totalRounds, {
+                productivity: ROLLING.productivityScore,
+                phantomRatio: ROLLING.phantomRatioAvg,
+                roundsSinceVerification: ROLLING.roundsSinceVerification,
+                tasksCompleted: injectedThisRound ? 0 : 1
+            });
+        } catch (e) { console.warn('[DQF] evaluate error: ' + e.message); }
 
         updatePanel();
         return false;
@@ -1434,6 +1481,8 @@ if (process.env.SCARLET_TEST) {
         // exp_008: Browser abstraction test helpers
         getBrowser,
         // idle_008: Branch prototyping test helpers
-        getBranch
+        getBranch,
+        // dqf_001: Decision Quality Feedback test helpers
+        getDecisionAudit
     };
 }
