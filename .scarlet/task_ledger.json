@@ -1,5 +1,12 @@
 {
-  "current_task": null,
+  "current_task": {
+    "id": "int_044",
+    "title": "sub_001: Preserve Core Runtime Assumptions",
+    "source": "goals-v3",
+    "priority": "P0",
+    "started_at": "2026-03-29T18:56:06.713Z",
+    "status": "in-progress"
+  },
   "completed_tasks": [
     {
       "id": "int_021",

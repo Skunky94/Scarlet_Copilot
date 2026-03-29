@@ -2915,9 +2915,50 @@ async function restoreCopilotChat() {
 
 // ─── Extension Lifecycle ─────────────────────────────────────────────────────
 
+// sub_001: Runtime assumption validator — checks critical invariants at startup.
+function validateRuntimeAssumptions() {
+    const violations = [];
+
+    // Check VS Code API surface
+    if (!vscode.LanguageModelToolResult) violations.push('missing vscode.LanguageModelToolResult');
+    if (!vscode.LanguageModelTextPart) violations.push('missing vscode.LanguageModelTextPart');
+    if (typeof vscode.commands.registerCommand !== 'function') violations.push('missing registerCommand');
+
+    // Check file system access to workspace
+    const root = getWorkspaceRoot();
+    if (!root) {
+        violations.push('no workspace root');
+    } else {
+        const scarletDir = path.join(root, '.scarlet');
+        try {
+            if (!fs.existsSync(scarletDir)) fs.mkdirSync(scarletDir, { recursive: true });
+            // Test write access
+            const testFile = path.join(scarletDir, '.write_test');
+            fs.writeFileSync(testFile, 'ok', 'utf8');
+            fs.unlinkSync(testFile);
+        } catch (e) {
+            violations.push('scarlet dir not writable: ' + e.message);
+        }
+    }
+
+    // Check Node.js primitives
+    if (typeof JSON.parse !== 'function') violations.push('missing JSON.parse');
+    if (typeof Date.now !== 'function') violations.push('missing Date.now');
+    if (typeof setTimeout !== 'function') violations.push('missing setTimeout');
+
+    return violations;
+}
+
 function activate(context) {
     METRICS.activatedAt = Date.now();
     METRICS.state = 'Executing';
+
+    // sub_001: Validate core runtime assumptions at startup
+    const runtimeCheck = validateRuntimeAssumptions();
+    if (runtimeCheck.length > 0) {
+        console.warn('[LOOP-GUARDIAN] Runtime assumption violations: ' + runtimeCheck.join(', '));
+        logEvent('runtime', 'assumption_violations', { violations: runtimeCheck });
+    }
 
     // Initialize agent state for this session
     const st = readAgentState();
