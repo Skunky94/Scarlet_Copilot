@@ -731,12 +731,12 @@ function writeTaskLedger(ledger) {
 
 function hasExternalBacklog() {
     const ledger = readTaskLedger();
-    return ledger && ledger.backlog_external && ledger.backlog_external.length > 0;
+    return ledger && (ledger.backlog_external || []).some(t => t.status !== 'done' && t.status !== 'completed');
 }
 
 function hasInternalBacklog() {
     const ledger = readTaskLedger();
-    return ledger && ledger.backlog_internal && ledger.backlog_internal.length > 0;
+    return ledger && (ledger.backlog_internal || []).some(t => t.status !== 'done' && t.status !== 'completed');
 }
 
 // ─── Contextual Prompt Builder ───────────────────────────────────────────────
@@ -755,8 +755,8 @@ function buildContextualPrompt(purpose, agentState) {
     const stateStr = agentState ? agentState.state : 'unknown';
     const ledger = readTaskLedger();
     const currentTask = ledger && ledger.current_task ? ledger.current_task.title : 'none';
-    const extBacklog = ledger ? (ledger.backlog_external || []).length : 0;
-    const intBacklog = ledger ? (ledger.backlog_internal || []).length : 0;
+    const extBacklog = ledger ? (ledger.backlog_external || []).filter(t => t.status !== 'done' && t.status !== 'completed').length : 0;
+    const intBacklog = ledger ? (ledger.backlog_internal || []).filter(t => t.status !== 'done' && t.status !== 'completed').length : 0;
 
     const header = '[SCARLET-IDLE-CYCLE] State: ' + stateStr +
         ' | Task: ' + currentTask +
