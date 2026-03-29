@@ -1,6 +1,6 @@
 {
   "schema_version": "3.0.0",
-  "last_updated": "2026-03-29T19:52:42.381Z",
+  "last_updated": "2026-03-29T20:02:56.910Z",
   "near_impossible_goal": "Autonomous persistent entity with eventual embodiment",
   "notes": "Goal graph v3. Co-designed with GPT. Focus: robustezza runtime, qualita semantica, modularizzazione, crescita autonoma.",
   "layers": [
@@ -572,7 +572,7 @@
           "title": "Patcher Contract Tests",
           "description": "Test che verificano compatibilita col target Copilot Chat.",
           "priority": "P1",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             "surv_004",
             "exp_005"
@@ -581,7 +581,9 @@
             "Test per ogni patch point",
             "Fail fast su incompatibilita",
             "Version matrix documentata"
-          ]
+          ],
+          "notes": "v2.12: 49 tests, 7 suites. Synthetic + live against v0.41.2. Version matrix: 0.41.1-0.41.2 ok.",
+          "artifact": "tests/patcher-contract.js"
         },
         {
           "id": "exp_007",
