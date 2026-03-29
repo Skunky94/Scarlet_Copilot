@@ -612,7 +612,7 @@
           "title": "Dedicated Browser Interaction Abstraction",
           "description": "Astrazione per interazioni browser, separata dal core.",
           "priority": "P2",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             "cog_004",
             "cog_005",
@@ -622,7 +622,8 @@
             "Modulo browser separato",
             "Retry logic",
             "Timeout handling"
-          ]
+          ],
+          "completed": "2026-03-30"
         },
         {
           "id": "exp_009",
