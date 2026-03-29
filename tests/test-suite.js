@@ -988,6 +988,122 @@ suite('REST Control API (exp_007)', () => {
         assert.strictEqual(T.DRIFT.consecutiveBadWindows, 0);
         await api.stop();
     });
+
+    test('isMemoryPathSafe rejects path traversal', () => {
+        const api = T.getApi();
+        assert.strictEqual(api.isMemoryPathSafe('../etc/passwd'), false);
+        assert.strictEqual(api.isMemoryPathSafe('sub/file.json'), false);
+        assert.strictEqual(api.isMemoryPathSafe('.hidden.json'), false);
+        assert.strictEqual(api.isMemoryPathSafe('file.exe'), false);
+        assert.strictEqual(api.isMemoryPathSafe(''), false);
+        assert.strictEqual(api.isMemoryPathSafe(null), false);
+    });
+
+    test('isMemoryPathSafe accepts valid filenames', () => {
+        const api = T.getApi();
+        assert.strictEqual(api.isMemoryPathSafe('goals.json'), true);
+        assert.strictEqual(api.isMemoryPathSafe('events.jsonl'), true);
+        assert.strictEqual(api.isMemoryPathSafe('notes.md'), true);
+        assert.strictEqual(api.isMemoryPathSafe('api_token.txt'), true);
+    });
+
+    test('GET /memory?file= reads .scarlet/ files', async () => {
+        const api = T.getApi();
+        const port = await api.start(19889);
+        const token = api.getApiInfo().token;
+        const res = await new Promise((resolve, reject) => {
+            const options = {
+                hostname: '127.0.0.1', port, path: '/memory?file=agent_state.json', method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + token }
+            };
+            const req = http.request(options, (resp) => {
+                let data = '';
+                resp.on('data', c => data += c);
+                resp.on('end', () => resolve({ status: resp.statusCode, body: JSON.parse(data) }));
+            });
+            req.on('error', reject);
+            req.end();
+        });
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.file, 'agent_state.json');
+        assert.ok(res.body.content);
+        assert.ok(res.body.size > 0);
+        await api.stop();
+    });
+
+    test('GET /memory lists .scarlet/ files', async () => {
+        const api = T.getApi();
+        const port = await api.start(19890);
+        const token = api.getApiInfo().token;
+        const res = await new Promise((resolve, reject) => {
+            const options = {
+                hostname: '127.0.0.1', port, path: '/memory', method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + token }
+            };
+            const req = http.request(options, (resp) => {
+                let data = '';
+                resp.on('data', c => data += c);
+                resp.on('end', () => resolve({ status: resp.statusCode, body: JSON.parse(data) }));
+            });
+            req.on('error', reject);
+            req.end();
+        });
+        assert.strictEqual(res.status, 200);
+        assert.ok(res.body.count > 0);
+        assert.ok(Array.isArray(res.body.files));
+        const names = res.body.files.map(f => f.name);
+        assert.ok(names.includes('goals.json') || names.includes('agent_state.json'));
+        await api.stop();
+    });
+
+    test('PUT /memory writes .scarlet/ file atomically', async () => {
+        const api = T.getApi();
+        const port = await api.start(19891);
+        const token = api.getApiInfo().token;
+        const testContent = JSON.stringify({ test: true, ts: Date.now() });
+        const body = JSON.stringify({ file: 'api_test_temp.json', content: testContent });
+        const res = await new Promise((resolve, reject) => {
+            const options = {
+                hostname: '127.0.0.1', port, path: '/memory', method: 'PUT',
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+            };
+            const req = http.request(options, (resp) => {
+                let data = '';
+                resp.on('data', c => data += c);
+                resp.on('end', () => resolve({ status: resp.statusCode, body: JSON.parse(data) }));
+            });
+            req.on('error', reject);
+            req.write(body);
+            req.end();
+        });
+        assert.strictEqual(res.status, 200);
+        assert.strictEqual(res.body.ok, true);
+        // Cleanup
+        const testPath = T.scarletPath('api_test_temp.json');
+        if (fs.existsSync(testPath)) fs.unlinkSync(testPath);
+        await api.stop();
+    });
+
+    test('GET /memory rejects path traversal', async () => {
+        const api = T.getApi();
+        const port = await api.start(19892);
+        const token = api.getApiInfo().token;
+        const res = await new Promise((resolve, reject) => {
+            const options = {
+                hostname: '127.0.0.1', port, path: '/memory?file=../extension.js', method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + token }
+            };
+            const req = http.request(options, (resp) => {
+                let data = '';
+                resp.on('data', c => data += c);
+                resp.on('end', () => resolve({ status: resp.statusCode, body: JSON.parse(data) }));
+            });
+            req.on('error', reject);
+            req.end();
+        });
+        assert.strictEqual(res.status, 400);
+        await api.stop();
+    });
 });
 
 // ─── Summary ─────────────────────────────────────────────────────────────────
