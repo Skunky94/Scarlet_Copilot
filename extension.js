@@ -1938,6 +1938,42 @@ const IDLE_TASK_LIBRARY = [
                 '→ Write findings to /memories/ if patterns emerge\n' +
                 '→ Read .scarlet/decision-journal.jsonl for full history';
         }
+    },
+    {
+        id: 'academic_review',
+        label: 'Review AI agent paper',
+        cooldownMs: 7200000, // 2 hours
+        priority: () => {
+            // Check paper queue for unreviewed papers
+            try {
+                const qPath = scarletPath('paper-queue.json');
+                if (!qPath || !fs.existsSync(qPath)) return 0.2;
+                const q = JSON.parse(fs.readFileSync(qPath, 'utf8'));
+                const highPri = (q.queue || []).filter(p => p.priority === 'high');
+                return highPri.length > 0 ? 0.5 : (q.queue || []).length > 0 ? 0.3 : 0.1;
+            } catch { return 0.2; }
+        },
+        directive: () => {
+            try {
+                const qPath = scarletPath('paper-queue.json');
+                if (!qPath || !fs.existsSync(qPath)) return 'ACADEMIC REVIEW (idle_006): Set up paper queue at .scarlet/paper-queue.json';
+                const q = JSON.parse(fs.readFileSync(qPath, 'utf8'));
+                const next = (q.queue || []).sort((a, b) => {
+                    const pri = { high: 3, medium: 2, low: 1 };
+                    return (pri[b.priority] || 0) - (pri[a.priority] || 0);
+                })[0];
+                if (!next) return 'ACADEMIC REVIEW (idle_006): Paper queue empty. Add papers to .scarlet/paper-queue.json';
+                return 'ACADEMIC PAPER REVIEW (idle_006): Review next paper from queue.\n' +
+                    '→ Paper: ' + next.title + ' (' + next.authors + ')\n' +
+                    '→ URL: ' + next.url + '\n' +
+                    '→ Context: ' + (next.notes || 'none') + '\n' +
+                    '→ TASK: Fetch and read the paper (use fetch_webpage or Playwright).\n' +
+                    '→ Extract: (1) key ideas, (2) relevance to our architecture, (3) actionable insights\n' +
+                    '→ Write review to /memories/ or .scarlet/paper-reviews/\n' +
+                    '→ Move paper from queue to reviewed in .scarlet/paper-queue.json\n' +
+                    '→ If insights suggest improvements, add them to goals.json backlog';
+            } catch { return 'ACADEMIC REVIEW (idle_006): Error reading paper queue.'; }
+        }
     }
 ];
 

@@ -1,0 +1,96 @@
+{
+  "schema_version": "1.0.0",
+  "last_updated": "2026-03-29T20:22:23.588Z",
+  "reviewed": [],
+  "queue": [
+    {
+      "id": "reflexion-2023",
+      "title": "Reflexion: Language Agents with Verbal Reinforcement Learning",
+      "authors": "Shinn et al., 2023",
+      "url": "https://arxiv.org/abs/2303.11366",
+      "priority": "high",
+      "tags": [
+        "reflexion",
+        "self-improvement",
+        "verbal-rl"
+      ],
+      "notes": "Already implemented Reflexion pattern. Review for deeper alignment."
+    },
+    {
+      "id": "react-2023",
+      "title": "ReAct: Synergizing Reasoning and Acting in Language Models",
+      "authors": "Yao et al., 2023",
+      "url": "https://arxiv.org/abs/2210.03629",
+      "priority": "high",
+      "tags": [
+        "reasoning",
+        "acting",
+        "agent-loop"
+      ],
+      "notes": "Core agent loop pattern — compare with our onLoopCheck architecture."
+    },
+    {
+      "id": "generative-agents-2023",
+      "title": "Generative Agents: Interactive Simulacra of Human Behavior",
+      "authors": "Park et al., 2023",
+      "url": "https://arxiv.org/abs/2304.03442",
+      "priority": "medium",
+      "tags": [
+        "memory",
+        "reflection",
+        "planning"
+      ],
+      "notes": "Memory architecture with reflection/planning streams."
+    },
+    {
+      "id": "cot-2022",
+      "title": "Chain-of-Thought Prompting Elicits Reasoning in Large Language Models",
+      "authors": "Wei et al., 2022",
+      "url": "https://arxiv.org/abs/2201.11903",
+      "priority": "medium",
+      "tags": [
+        "reasoning",
+        "prompting"
+      ],
+      "notes": "Foundation for structured reasoning in agent prompts."
+    },
+    {
+      "id": "voyager-2023",
+      "title": "Voyager: An Open-Ended Embodied Agent with Large Language Models",
+      "authors": "Wang et al., 2023",
+      "url": "https://arxiv.org/abs/2305.16291",
+      "priority": "medium",
+      "tags": [
+        "skill-library",
+        "curriculum",
+        "embodiment"
+      ],
+      "notes": "Skill library pattern — compare with our idle task library."
+    },
+    {
+      "id": "toolformer-2023",
+      "title": "Toolformer: Language Models Can Teach Themselves to Use Tools",
+      "authors": "Schick et al., 2023",
+      "url": "https://arxiv.org/abs/2302.04761",
+      "priority": "low",
+      "tags": [
+        "tool-use",
+        "self-teaching"
+      ],
+      "notes": "Self-supervised tool use."
+    },
+    {
+      "id": "inner-monologue-2023",
+      "title": "Inner Monologue: Embodied Reasoning through Planning with Language Models",
+      "authors": "Huang et al., 2023",
+      "url": "https://arxiv.org/abs/2207.05608",
+      "priority": "low",
+      "tags": [
+        "planning",
+        "embodiment",
+        "feedback"
+      ],
+      "notes": "Closed-loop feedback for embodied agents."
+    }
+  ]
+}
