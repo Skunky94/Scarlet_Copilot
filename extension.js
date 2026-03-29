@@ -884,6 +884,19 @@ function buildContextualPrompt(purpose, agentState) {
                 '→ Which options to discard? What is the minimum criteria for choosing?\n\n' +
                 '→ After consulting, write last_gpt_consult_at to agent_state.json.';
 
+        case 'post_task_handoff': {
+            // auto_002: Automatic post-task handoff with promoted task
+            const promoted = NUDGE_STATE._lastPromotedTask;
+            const promotedLine = promoted
+                ? '[PROMOTED] "' + promoted.title + '" (' + (promoted.priority || 'P2') + ') is now your current task.\n' +
+                  'Plan your steps in task_ledger.json and begin immediately.\n'
+                : 'Backlog has items but promotion failed. Check task_ledger.json.\n';
+            return header +
+                'POST-TASK HANDOFF — automatic transition.\n' +
+                promotedLine + '\n' +
+                'DECISION CONTRACT applies: Default is CONTINUE. Plan steps and work.';
+        }
+
         case 'decision_collapse':
             return header +
                 'DECISION COLLAPSE — MANDATORY ACTION (round ' + ROLLING.roundsSinceLastDecision + '/' +
@@ -1178,8 +1191,18 @@ function shouldMetaNudge(agentState, ledger, operationalNudge, rolling) {
 
     let candidate = null;
 
+    // auto_002: Post-task handoff takes priority — promote from backlog immediately
+    if (noCurrentTask) {
+        const promoted = promoteNextBacklogItem();
+        if (promoted) {
+            candidate = 'post_task_handoff';
+            // Store promoted info for the prompt builder
+            NUDGE_STATE._lastPromotedTask = promoted;
+        }
+    }
+
     // Reflection first, but only if no active operational instability
-    if (REFLEXION.pendingReflection && noCurrentTask) {
+    if (!candidate && REFLEXION.pendingReflection && noCurrentTask) {
         candidate = 'reflect';
     }
 
