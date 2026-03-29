@@ -630,6 +630,15 @@ function getBrowser() {
     return _browser;
 }
 
+// ─── Experimental Branch Prototyping (lazy-loaded from lib/branch.js, idle_008) ─
+let _branch = null;
+function getBranch() {
+    if (!_branch) _branch = require('./lib/branch')({
+        fs, scarletPath
+    });
+    return _branch;
+}
+
 function shouldBypassToolLimit(_request) {
     if (!cfg('enabled')) return false;
     return cfg('bypassToolLimit') === true;
@@ -1423,6 +1432,8 @@ if (process.env.SCARLET_TEST) {
         getApi,
         getApiInfo: () => getApi().getApiInfo(),
         // exp_008: Browser abstraction test helpers
-        getBrowser
+        getBrowser,
+        // idle_008: Branch prototyping test helpers
+        getBranch
     };
 }

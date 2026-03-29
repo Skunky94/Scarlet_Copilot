@@ -1259,6 +1259,82 @@ suite('Browser Interaction Abstraction (exp_008)', () => {
     });
 });
 
+// ─── Experimental Branch Prototyping (idle_008) ─────────────────────────────
+suite('Experimental Branch Prototyping (idle_008)', () => {
+
+    test('getBranch returns object with expected methods', () => {
+        const br = T.getBranch();
+        assert.ok(typeof br.getCurrentBranch === 'function');
+        assert.ok(typeof br.listExperimentBranches === 'function');
+        assert.ok(typeof br.createExperiment === 'function');
+        assert.ok(typeof br.switchBranch === 'function');
+        assert.ok(typeof br.mergeIfTestsPass === 'function');
+        assert.ok(typeof br.rollback === 'function');
+        assert.ok(typeof br.getStatus === 'function');
+        assert.ok(typeof br.gitExec === 'function');
+    });
+
+    test('getCurrentBranch returns a branch name', () => {
+        const br = T.getBranch();
+        const current = br.getCurrentBranch();
+        assert.ok(typeof current === 'string');
+        assert.ok(current.length > 0);
+    });
+
+    test('getStatus returns status object', () => {
+        const br = T.getBranch();
+        const status = br.getStatus();
+        assert.ok('currentBranch' in status);
+        assert.ok('isExperiment' in status);
+        assert.ok('isDirty' in status);
+        assert.ok('experimentBranches' in status);
+        assert.ok(Array.isArray(status.experimentBranches));
+    });
+
+    test('EXPERIMENT_PREFIX is experiment/', () => {
+        const br = T.getBranch();
+        assert.strictEqual(br.EXPERIMENT_PREFIX, 'experiment/');
+    });
+
+    test('createExperiment rejects empty name', () => {
+        const br = T.getBranch();
+        const res = br.createExperiment('');
+        assert.strictEqual(res.ok, false);
+        assert.ok(res.error.includes('required'));
+    });
+
+    test('createExperiment rejects null name', () => {
+        const br = T.getBranch();
+        const res = br.createExperiment(null);
+        assert.strictEqual(res.ok, false);
+    });
+
+    test('rollback rejects non-experiment branches', () => {
+        const br = T.getBranch();
+        const res = br.rollback('master');
+        assert.strictEqual(res.ok, false);
+        assert.ok(res.error.includes('experiment/'));
+    });
+
+    test('gitExec runs git commands', () => {
+        const br = T.getBranch();
+        const res = br.gitExec('status --porcelain');
+        assert.strictEqual(res.ok, true);
+        assert.strictEqual(res.error, null);
+    });
+
+    test('listExperimentBranches returns array', () => {
+        const br = T.getBranch();
+        const list = br.listExperimentBranches();
+        assert.ok(Array.isArray(list));
+    });
+
+    test('static EXPERIMENT_PREFIX matches instance', () => {
+        const Branch = require('../lib/branch.js');
+        assert.strictEqual(Branch.EXPERIMENT_PREFIX, 'experiment/');
+    });
+});
+
 // ─── Summary ─────────────────────────────────────────────────────────────────
 
 console.log('\n' + '─'.repeat(50));
