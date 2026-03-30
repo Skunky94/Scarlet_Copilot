@@ -13,7 +13,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = 'v2.20.0'; // single source of truth for runtime version
+const VERSION = 'v2.21.0'; // single source of truth for runtime version
 
 // â”€â”€â”€ Configuration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -263,6 +263,15 @@ function formatReflectionsForPrompt() {
 }
 
 function requestReflection(trigger, extraContext) {
+    // rt_003: Skip if reflection theater detected — reflections aren't producing behavior change
+    try {
+        if (getCognition().isReflectionTheater()) {
+            console.log('[LOOP-GUARDIAN] Reflexion suppressed (theater detected): ' + trigger);
+            logEvent('reflexion', 'theater_suppressed', { trigger });
+            return;
+        }
+    } catch {}
+
     REFLEXION.pendingReflection = {
         trigger,
         context: extraContext || {},
@@ -1604,6 +1613,8 @@ if (process.env.SCARLET_TEST) {
         applyAdaptiveMultipliers,
         ADAPTIVE_INTERVAL,
         getLastAdaptiveRound: () => _lastAdaptiveRound,
-        setLastAdaptiveRound: (v) => { _lastAdaptiveRound = v; }
+        setLastAdaptiveRound: (v) => { _lastAdaptiveRound = v; },
+        // rt_003: Reflection Impact Rate test helpers
+        requestReflection
     };
 }

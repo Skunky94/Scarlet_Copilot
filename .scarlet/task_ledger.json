@@ -1,12 +1,6 @@
 {
   "backlog_internal": [
     {
-      "id": "rt_002",
-      "title": "Guardian Self-Score",
-      "priority": "P1",
-      "source": "gpt_redteam"
-    },
-    {
       "id": "rt_003",
       "title": "Exploration Quota (10% experimental)",
       "priority": "P1",
@@ -25,17 +19,17 @@
       "source": "gpt_redteam"
     }
   ],
-  "notes": "v2.19.0 deployed, 208 tests. Adaptation rate limiting (damping) active. GPT red team review saved.",
+  "notes": "v2.20.0 deployed, 215 tests. Guardian Self-Score active.",
   "last_verification": "2026-03-30T07:00:00.000Z",
   "current_task": {
-    "id": "rt_001",
+    "id": "rt_002",
     "status": "done",
     "step": "deployed_pushed"
   },
   "backlog_external": [],
   "status": "idle",
   "verified": true,
-  "current_step": "rt_001 done. 4 items remaining in backlog.",
+  "current_step": "rt_002 done. 3 items remaining.",
   "steps_completed": 8,
-  "last_updated": "2026-03-30T01:24:01.960Z"
+  "last_updated": "2026-03-30T01:30:55.178Z"
 }
