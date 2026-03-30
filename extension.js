@@ -13,7 +13,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = 'v2.19.0'; // single source of truth for runtime version
+const VERSION = 'v2.20.0'; // single source of truth for runtime version
 
 // â”€â”€â”€ Configuration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -693,17 +693,23 @@ const ADAPTIVE_INTERVAL = 10;
 function applyAdaptiveMultipliers() {
     try {
         const adaptive = getAdaptive();
-        const metrics = getDecisionAudit().getMetrics();
+        const audit = getDecisionAudit();
+        const metrics = audit.getMetrics();
         const result = adaptive.adapt(metrics);
-        if (result.adapted) {
-            // Apply multipliers to base POLICY values → update mutable threshold properties
-            COMPULSIVE_LOOP.SOFT_THRESHOLD = adaptive.applyMultiplier('compulsiveLoopThreshold', POLICY.compulsiveLoop.softThreshold);
-            COMPULSIVE_LOOP.HARD_THRESHOLD = adaptive.applyMultiplier('compulsiveLoopThreshold', POLICY.compulsiveLoop.hardThreshold);
-            PHANTOM.BURST_THRESHOLD = adaptive.applyMultiplier('phantomBurstThreshold', POLICY.phantom.burstThreshold);
-            ROLLING.DECISION_COLLAPSE_THRESHOLD = adaptive.applyMultiplier('decisionCollapseThreshold', POLICY.rolling.decisionCollapseThreshold);
-            ROLLING.GPT_CONSULT_IDLE_THRESHOLD = adaptive.applyMultiplier('nudgeThreshold', POLICY.rolling.gptConsultIdleThreshold);
-            console.log('[ADAPTIVE] Multipliers applied: ' + JSON.stringify(result.multipliers));
-            logEvent('adaptive', 'multipliers_applied', result.multipliers);
+
+        // Guardian Self-Score (rt_002): guardian monitors itself
+        const selfScore = audit.computeSelfScore();
+        const throttle = selfScore.throttleRecommended ? audit.GUARDIAN_THROTTLE_FACTOR : 1.0;
+
+        if (result.adapted || throttle > 1.0) {
+            // Apply adaptive multipliers × self-score throttle → update mutable thresholds
+            COMPULSIVE_LOOP.SOFT_THRESHOLD = Math.round(adaptive.applyMultiplier('compulsiveLoopThreshold', POLICY.compulsiveLoop.softThreshold) * throttle);
+            COMPULSIVE_LOOP.HARD_THRESHOLD = Math.round(adaptive.applyMultiplier('compulsiveLoopThreshold', POLICY.compulsiveLoop.hardThreshold) * throttle);
+            PHANTOM.BURST_THRESHOLD = Math.round(adaptive.applyMultiplier('phantomBurstThreshold', POLICY.phantom.burstThreshold) * throttle);
+            ROLLING.DECISION_COLLAPSE_THRESHOLD = Math.round(adaptive.applyMultiplier('decisionCollapseThreshold', POLICY.rolling.decisionCollapseThreshold) * throttle);
+            ROLLING.GPT_CONSULT_IDLE_THRESHOLD = Math.round(adaptive.applyMultiplier('nudgeThreshold', POLICY.rolling.gptConsultIdleThreshold) * throttle);
+            console.log('[ADAPTIVE] Multipliers applied (throttle=' + throttle.toFixed(2) + ', selfScore=' + selfScore.selfScore + '): ' + JSON.stringify(result.multipliers));
+            logEvent('adaptive', 'multipliers_applied', { multipliers: result.multipliers, selfScore: selfScore.selfScore, throttle });
         }
     } catch (e) {
         console.warn('[ADAPTIVE] Apply error: ' + e.message);

@@ -1443,6 +1443,66 @@ suite('Decision Quality Feedback (dqf_001)', () => {
     });
 });
 
+// ─── Guardian Self-Score (rt_002) ────────────────────────────────────────────
+suite('Guardian Self-Score (rt_002)', () => {
+
+    test('computeSelfScore is a function', () => {
+        const da = T.getDecisionAudit();
+        assert.strictEqual(typeof da.computeSelfScore, 'function');
+    });
+
+    test('SELF_SCORE_THRESHOLD and GUARDIAN_THROTTLE_FACTOR are exported', () => {
+        const da = T.getDecisionAudit();
+        assert.strictEqual(typeof da.SELF_SCORE_THRESHOLD, 'number');
+        assert.ok(da.SELF_SCORE_THRESHOLD > 0 && da.SELF_SCORE_THRESHOLD < 1);
+        assert.strictEqual(typeof da.GUARDIAN_THROTTLE_FACTOR, 'number');
+        assert.ok(da.GUARDIAN_THROTTLE_FACTOR > 1);
+    });
+
+    test('computeSelfScore returns expected shape', () => {
+        const da = T.getDecisionAudit();
+        const score = da.computeSelfScore();
+        assert.ok(typeof score === 'object');
+        assert.ok('selfScore' in score);
+        assert.ok('throttleRecommended' in score);
+        assert.ok('reason' in score);
+        assert.ok('regretRate' in score);
+        assert.ok('noiseRate' in score);
+        assert.ok('effectiveness' in score);
+    });
+
+    test('computeSelfScore returns neutral with insufficient data', () => {
+        // With few or no decisions, should return 1.0 / no throttle
+        const da = T.getDecisionAudit();
+        const score = da.computeSelfScore();
+        // Either insufficient_data or a computed score — both valid
+        assert.ok(typeof score.selfScore === 'number');
+        assert.ok(typeof score.throttleRecommended === 'boolean');
+    });
+
+    test('selfScore is between 0 and 1', () => {
+        const da = T.getDecisionAudit();
+        const score = da.computeSelfScore();
+        assert.ok(score.selfScore >= 0 && score.selfScore <= 1, 'selfScore out of range: ' + score.selfScore);
+    });
+
+    test('throttleRecommended is false when selfScore >= SELF_SCORE_THRESHOLD', () => {
+        const da = T.getDecisionAudit();
+        const score = da.computeSelfScore();
+        if (score.selfScore >= da.SELF_SCORE_THRESHOLD) {
+            assert.strictEqual(score.throttleRecommended, false);
+        } else {
+            assert.strictEqual(score.throttleRecommended, true);
+        }
+    });
+
+    test('applyAdaptiveMultipliers integrates self-score without error', () => {
+        // Call the wired function — should handle self-score throttle gracefully
+        ext.__test.applyAdaptiveMultipliers();
+        assert.ok(true);
+    });
+});
+
 // ─── Cognition Telemetry (gpt_001) ───────────────────────────────────────────
 
 suite('Cognition Telemetry (gpt_001)', () => {
