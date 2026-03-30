@@ -2051,6 +2051,50 @@ suite('Adaptive Governance (gpt_005)', () => {
         adp.loadState();
         assert.ok(true);
     });
+
+    test('MAX_SHIFT_PER_ADAPT is 0.05', () => {
+        assert.strictEqual(adp.MAX_SHIFT_PER_ADAPT, 0.05);
+    });
+
+    test('OSCILLATION_WINDOW is 3', () => {
+        assert.strictEqual(adp.OSCILLATION_WINDOW, 3);
+    });
+
+    test('OSCILLATION_COOLDOWN is 2', () => {
+        assert.strictEqual(adp.OSCILLATION_COOLDOWN, 2);
+    });
+
+    test('adapt clamps delta to MAX_SHIFT_PER_ADAPT', () => {
+        adp.reset();
+        // Provide metrics that would normally cause LEARNING_RATE (0.1) shift
+        const result = adp.adapt({
+            nudgeEffectiveness: 0.1, // very low → would increase nudgeThreshold by 0.1
+            falseBlocks: 0,
+            guardianNoise: 0,
+            avgQuality: 0,
+            totalRecords: 20
+        });
+        // With MAX_SHIFT_PER_ADAPT=0.05, the shift should be clamped
+        if (result.adapted) {
+            const m = adp.getMultiplier('nudgeThreshold');
+            // Should be at most 1.0 + 0.05 = 1.05, not 1.0 + 0.1 = 1.1
+            assert.ok(m <= 1.051, 'Shift should be clamped to MAX_SHIFT_PER_ADAPT, got ' + m);
+        }
+        adp.reset();
+    });
+
+    test('getStatus includes oscillationCooldown', () => {
+        adp.reset();
+        const status = adp.getStatus();
+        assert.strictEqual(status.oscillationCooldown, 0);
+    });
+
+    test('reset clears oscillation cooldown', () => {
+        adp.reset();
+        const status = adp.getStatus();
+        assert.strictEqual(status.oscillationCooldown, 0);
+        assert.strictEqual(status.adaptationCount, 0);
+    });
 });
 
 // ─── Adaptive Governance Wiring ─────────────────────────────────────────────

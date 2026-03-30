@@ -1,16 +1,47 @@
 {
-  "backlog_internal": [],
-  "notes": "DQF module complete. v2.13.0 deployed, 121 tests, 15 modules. 57/58 goals (98%). GPT consultation active on own account. Next: GPT roadmap items (cognition telemetry, chaos testing, long-horizon simulation).",
+  "backlog_internal": [
+    {
+      "id": "rt_001",
+      "title": "Adaptation Rate Limiting (damping)",
+      "priority": "P0",
+      "source": "gpt_redteam"
+    },
+    {
+      "id": "rt_002",
+      "title": "Guardian Self-Score",
+      "priority": "P1",
+      "source": "gpt_redteam"
+    },
+    {
+      "id": "rt_003",
+      "title": "Exploration Quota (10% experimental)",
+      "priority": "P1",
+      "source": "gpt_redteam"
+    },
+    {
+      "id": "rt_004",
+      "title": "Memory Stratification (log compaction)",
+      "priority": "P2",
+      "source": "gpt_redteam"
+    },
+    {
+      "id": "rt_005",
+      "title": "Retry Budget + Circuit Breaker",
+      "priority": "P2",
+      "source": "gpt_redteam"
+    }
+  ],
+  "notes": "v2.18.0 deployed. GPT red team review: 7 failure modes analyzed. Next: implement defenses.",
   "last_verification": "2026-03-30T07:00:00.000Z",
   "current_task": {
-    "id": "url_fix",
+    "id": "gpt_redteam",
     "status": "done",
-    "step": "committed"
+    "step": "received_analyzed"
   },
   "backlog_external": [],
-  "status": "done",
+  "status": "idle",
   "verified": true,
-  "current_step": "URL fix complete, proceeding to adaptive wiring",
+  "current_step": "Red team review received. Backlog populated with actionable items.",
   "steps_completed": 8,
-  "last_updated": "2026-03-30T00:57:21.839Z"
+  "last_updated": "2026-03-30T01:19:33.646Z"
 }
