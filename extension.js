@@ -13,7 +13,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = 'v2.15.0'; // single source of truth for runtime version
+const VERSION = 'v2.16.0'; // single source of truth for runtime version
 
 // â”€â”€â”€ Configuration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -664,6 +664,15 @@ function getChaos() {
         fs, path: require('path'), getWorkspaceRoot
     });
     return _chaos;
+}
+
+// ─── Long-Horizon Monitor (lazy-loaded from lib/horizon.js, gpt_003) ─────────
+let _horizon = null;
+function getHorizon() {
+    if (!_horizon) _horizon = require('./lib/horizon')({
+        fs, path: require('path'), getWorkspaceRoot
+    });
+    return _horizon;
 }
 
 function shouldBypassToolLimit(_request) {
@@ -1539,6 +1548,8 @@ if (process.env.SCARLET_TEST) {
         // gpt_001: Cognition Telemetry test helpers
         getCognition,
         // gpt_002: Chaos Testing test helpers
-        getChaos
+        getChaos,
+        // gpt_003: Long-Horizon Monitor test helpers
+        getHorizon
     };
 }

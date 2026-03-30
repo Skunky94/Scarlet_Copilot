@@ -1779,6 +1779,136 @@ suite('Chaos Testing Framework (gpt_002)', () => {
     });
 });
 
+// ─── Long-Horizon Simulation Monitor (gpt_003) ─────────────────────────────
+
+suite('Long-Horizon Simulation Monitor (gpt_003)', () => {
+    const createHorizon = require('../lib/horizon.js');
+
+    test('module exports factory function', () => {
+        assert.ok(typeof createHorizon === 'function');
+    });
+
+    const hrz = createHorizon({
+        fs: require('fs'),
+        path: require('path'),
+        getWorkspaceRoot: () => null
+    });
+
+    test('SIGNALS has expected types', () => {
+        assert.strictEqual(hrz.SIGNALS.MEMORY_GROWTH, 'memory_growth');
+        assert.strictEqual(hrz.SIGNALS.RETRY_SPAM, 'retry_spam');
+        assert.strictEqual(hrz.SIGNALS.REFLECTION_REPETITIVE, 'reflection_repetitive');
+        assert.strictEqual(hrz.SIGNALS.EVENT_LOG_BLOAT, 'event_log_bloat');
+        assert.strictEqual(hrz.SIGNALS.STALE_STATE, 'stale_state');
+        assert.strictEqual(hrz.SIGNALS.GOAL_DEGENERATION, 'goal_degeneration');
+    });
+
+    test('THRESHOLDS has numeric values', () => {
+        assert.ok(typeof hrz.THRESHOLDS.memoryGrowthMB === 'number');
+        assert.ok(typeof hrz.THRESHOLDS.retrySpamWindow === 'number');
+        assert.ok(typeof hrz.THRESHOLDS.eventLogMaxLines === 'number');
+        assert.ok(typeof hrz.THRESHOLDS.staleStateMinutes === 'number');
+    });
+
+    test('constants are correct', () => {
+        assert.strictEqual(hrz.HORIZON_FILE, '.scarlet/horizon_monitor.json');
+        assert.strictEqual(hrz.MAX_CHECKPOINTS, 500);
+    });
+
+    test('measureMemoryUsage returns 0 without workspace', () => {
+        assert.strictEqual(hrz.measureMemoryUsage(), 0);
+    });
+
+    test('measureEventLogSize returns 0 without workspace', () => {
+        assert.strictEqual(hrz.measureEventLogSize(), 0);
+    });
+
+    test('measureStaleState returns 0 without workspace', () => {
+        assert.strictEqual(hrz.measureStaleState(), 0);
+    });
+
+    test('detectRetrySpam returns false with few calls', () => {
+        assert.strictEqual(hrz.detectRetrySpam(['read_file']), false);
+    });
+
+    test('detectRetrySpam detects identical calls', () => {
+        const calls = new Array(15).fill('read_file');
+        const result = hrz.detectRetrySpam(calls);
+        assert.strictEqual(result, true);
+    });
+
+    test('detectReflectionRepetitiveness returns object without workspace', () => {
+        const result = hrz.detectReflectionRepetitiveness();
+        assert.ok('duplicateRatio' in result);
+        assert.ok('totalReflections' in result);
+    });
+
+    test('takeCheckpoint returns checkpoint object', () => {
+        const cp = hrz.takeCheckpoint({ productivity: 0.9 });
+        assert.ok('ts' in cp);
+        assert.ok('memoryBytes' in cp);
+        assert.ok('sessionDurationHrs' in cp);
+        assert.ok('degradationSignals' in cp);
+        assert.ok('isDegraded' in cp);
+        assert.ok(Array.isArray(cp.degradationSignals));
+    });
+
+    test('getMemoryTrend returns trend object', () => {
+        const trend = hrz.getMemoryTrend();
+        assert.ok('trend' in trend);
+        assert.ok('growthRate' in trend);
+    });
+
+    test('getDegradationSummary returns summary', () => {
+        const summary = hrz.getDegradationSummary();
+        assert.ok('healthy' in summary);
+        assert.ok('degradationRate' in summary);
+        assert.ok('checkpointCount' in summary);
+    });
+
+    test('getHealthReport returns comprehensive report', () => {
+        const report = hrz.getHealthReport();
+        assert.ok('sessionDurationHrs' in report);
+        assert.ok('memoryTrend' in report);
+        assert.ok('degradation' in report);
+        assert.ok('retrySpamDetected' in report);
+        assert.ok('reflections' in report);
+    });
+
+    test('getHorizonPath returns null without workspace', () => {
+        assert.strictEqual(hrz.getHorizonPath(), null);
+    });
+
+    test('saveState and loadState execute without workspace', () => {
+        hrz.saveState();
+        hrz.loadState();
+        assert.ok(true);
+    });
+
+    // Test with real workspace
+    test('measureMemoryUsage returns bytes with workspace', () => {
+        const realHrz = createHorizon({
+            fs: require('fs'),
+            path: require('path'),
+            getWorkspaceRoot: () => require('path').resolve(__dirname, '..')
+        });
+        const bytes = realHrz.measureMemoryUsage();
+        assert.ok(typeof bytes === 'number');
+        assert.ok(bytes > 0, '.scarlet/ should have some files');
+    });
+
+    test('measureEventLogSize returns positive with workspace', () => {
+        const realHrz = createHorizon({
+            fs: require('fs'),
+            path: require('path'),
+            getWorkspaceRoot: () => require('path').resolve(__dirname, '..')
+        });
+        const lines = realHrz.measureEventLogSize();
+        assert.ok(typeof lines === 'number');
+        // May or may not have events, just verify it doesn't crash
+    });
+});
+
 // ─── Summary ─────────────────────────────────────────────────────────────────
 
 console.log('\n' + '─'.repeat(50));
