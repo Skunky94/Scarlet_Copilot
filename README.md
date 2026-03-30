@@ -1,4 +1,4 @@
-# Scarlet Loop Guardian v2.7.0
+# Scarlet Loop Guardian v2.23.0
 
 Estensione VS Code che intercetta il ciclo agentico di GitHub Copilot Chat per prevenire la terminazione prematura delle sessioni. Include idle life (ciclo cognitivo autonomo), self-monitoring (metrics logging), e bridge di comunicazione bidirezionale.
 
