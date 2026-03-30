@@ -13,7 +13,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = 'v2.17.0'; // single source of truth for runtime version
+const VERSION = 'v2.18.0'; // single source of truth for runtime version
 
 // â”€â”€â”€ Configuration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -684,6 +684,32 @@ function getAdaptive() {
     return _adaptive;
 }
 
+// ─── Adaptive Governance Wiring ─────────────────────────────────────────────
+// Applies adaptive multipliers to runtime threshold properties.
+// Triggered periodically after decision audit evaluation (every ADAPTIVE_INTERVAL rounds).
+let _lastAdaptiveRound = 0;
+const ADAPTIVE_INTERVAL = 10;
+
+function applyAdaptiveMultipliers() {
+    try {
+        const adaptive = getAdaptive();
+        const metrics = getDecisionAudit().getMetrics();
+        const result = adaptive.adapt(metrics);
+        if (result.adapted) {
+            // Apply multipliers to base POLICY values → update mutable threshold properties
+            COMPULSIVE_LOOP.SOFT_THRESHOLD = adaptive.applyMultiplier('compulsiveLoopThreshold', POLICY.compulsiveLoop.softThreshold);
+            COMPULSIVE_LOOP.HARD_THRESHOLD = adaptive.applyMultiplier('compulsiveLoopThreshold', POLICY.compulsiveLoop.hardThreshold);
+            PHANTOM.BURST_THRESHOLD = adaptive.applyMultiplier('phantomBurstThreshold', POLICY.phantom.burstThreshold);
+            ROLLING.DECISION_COLLAPSE_THRESHOLD = adaptive.applyMultiplier('decisionCollapseThreshold', POLICY.rolling.decisionCollapseThreshold);
+            ROLLING.GPT_CONSULT_IDLE_THRESHOLD = adaptive.applyMultiplier('nudgeThreshold', POLICY.rolling.gptConsultIdleThreshold);
+            console.log('[ADAPTIVE] Multipliers applied: ' + JSON.stringify(result.multipliers));
+            logEvent('adaptive', 'multipliers_applied', result.multipliers);
+        }
+    } catch (e) {
+        console.warn('[ADAPTIVE] Apply error: ' + e.message);
+    }
+}
+
 function shouldBypassToolLimit(_request) {
     if (!cfg('enabled')) return false;
     return cfg('bypassToolLimit') === true;
@@ -1215,6 +1241,12 @@ async function onLoopCheck(roundData, loopInstance) {
             });
         } catch (e) { console.warn('[DQF] evaluate error: ' + e.message); }
 
+        // Adaptive governance: periodically adapt thresholds from audit data
+        if (METRICS.totalRounds - _lastAdaptiveRound >= ADAPTIVE_INTERVAL) {
+            _lastAdaptiveRound = METRICS.totalRounds;
+            applyAdaptiveMultipliers();
+        }
+
         updatePanel();
         return false;
     }
@@ -1561,6 +1593,11 @@ if (process.env.SCARLET_TEST) {
         // gpt_003: Long-Horizon Monitor test helpers
         getHorizon,
         // gpt_005: Adaptive Governance test helpers
-        getAdaptive
+        getAdaptive,
+        // Adaptive wiring test helpers
+        applyAdaptiveMultipliers,
+        ADAPTIVE_INTERVAL,
+        getLastAdaptiveRound: () => _lastAdaptiveRound,
+        setLastAdaptiveRound: (v) => { _lastAdaptiveRound = v; }
     };
 }

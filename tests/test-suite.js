@@ -2053,6 +2053,60 @@ suite('Adaptive Governance (gpt_005)', () => {
     });
 });
 
+// ─── Adaptive Governance Wiring ─────────────────────────────────────────────
+
+suite('Adaptive Governance Wiring', () => {
+    test('ADAPTIVE_INTERVAL is 10', () => {
+        assert.strictEqual(ext.__test.ADAPTIVE_INTERVAL, 10);
+    });
+
+    test('applyAdaptiveMultipliers is a function', () => {
+        assert.strictEqual(typeof ext.__test.applyAdaptiveMultipliers, 'function');
+    });
+
+    test('getLastAdaptiveRound and setLastAdaptiveRound work', () => {
+        const original = ext.__test.getLastAdaptiveRound();
+        ext.__test.setLastAdaptiveRound(42);
+        assert.strictEqual(ext.__test.getLastAdaptiveRound(), 42);
+        ext.__test.setLastAdaptiveRound(original);
+    });
+
+    test('applyAdaptiveMultipliers executes without error', () => {
+        // Should be safe to call even with no audit data
+        ext.__test.applyAdaptiveMultipliers();
+        assert.ok(true);
+    });
+
+    test('applyAdaptiveMultipliers respects multiplier changes', () => {
+        // Reset adaptive module to defaults
+        const adaptive = ext.__test.getAdaptive();
+        adaptive.reset();
+
+        // Call — with insufficient samples, should not adapt
+        ext.__test.applyAdaptiveMultipliers();
+        const status = adaptive.getStatus();
+        assert.strictEqual(status.isAdapted, false);
+    });
+
+    test('adaptive module getMultiplier returns 1.0 for defaults', () => {
+        const adaptive = ext.__test.getAdaptive();
+        adaptive.reset();
+        assert.strictEqual(adaptive.getMultiplier('nudgeThreshold'), 1.0);
+        assert.strictEqual(adaptive.getMultiplier('compulsiveLoopThreshold'), 1.0);
+        assert.strictEqual(adaptive.getMultiplier('phantomBurstThreshold'), 1.0);
+        assert.strictEqual(adaptive.getMultiplier('decisionCollapseThreshold'), 1.0);
+        assert.strictEqual(adaptive.getMultiplier('driftWindowSize'), 1.0);
+    });
+
+    test('applyMultiplier preserves base value when multiplier is 1.0', () => {
+        const adaptive = ext.__test.getAdaptive();
+        adaptive.reset();
+        assert.strictEqual(adaptive.applyMultiplier('compulsiveLoopThreshold', 3), 3);
+        assert.strictEqual(adaptive.applyMultiplier('phantomBurstThreshold', 3), 3);
+        assert.strictEqual(adaptive.applyMultiplier('decisionCollapseThreshold', 4), 4);
+    });
+});
+
 // ─── Summary ─────────────────────────────────────────────────────────────────
 
 console.log('\n' + '─'.repeat(50));

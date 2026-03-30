@@ -21,7 +21,7 @@ STEP 2 — GOALS:
   → If no actionable goals: proceed to STEP 3.
 
 STEP 3 — GPT CONSULTATION (mandatory when no tasks/goals):
-  → Open GPT chat: https://chatgpt.com/c/69c8e064-2e34-8390-baee-486dfd7de5ef
+  → Open GPT chat: https://chatgpt.com/c/69c9b303-7114-8393-a58b-e497c359d413
   → Use browser tools (read_page, type_in_page, click_element) to interact. Language: Italian.
   → CHOOSE consultation mode based on trigger:
     MODE A — REALITY CHECK (default for idle, drift):

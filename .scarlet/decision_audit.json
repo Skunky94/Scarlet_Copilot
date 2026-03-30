@@ -461,10 +461,274 @@
         "tasksCompleted": 3,
         "roundsSinceVerification": 2
       }
+    },
+    {
+      "id": "dec_1774832153870",
+      "timestamp": "2026-03-30T00:55:53.870Z",
+      "type": "nudge",
+      "trigger": "test",
+      "stateInference": null,
+      "reason": "test nudge",
+      "metricsSnapshot": {
+        "productivity": 0.85,
+        "phantomRatio": null,
+        "roundsSinceVerification": null,
+        "roundsSinceDecision": null
+      },
+      "quality": "good",
+      "evaluateAfterRound": 15,
+      "outcomeMetrics": {
+        "productivity": 0.9,
+        "phantomRatio": 0.1,
+        "tasksCompleted": 3,
+        "roundsSinceVerification": 2
+      }
+    },
+    {
+      "id": "dec_1774832153873",
+      "timestamp": "2026-03-30T00:55:53.873Z",
+      "type": "nudge",
+      "trigger": "test",
+      "stateInference": null,
+      "reason": null,
+      "metricsSnapshot": {
+        "productivity": null,
+        "phantomRatio": null,
+        "roundsSinceVerification": null,
+        "roundsSinceDecision": null
+      },
+      "quality": "good",
+      "evaluateAfterRound": 25,
+      "outcomeMetrics": {
+        "productivity": 0.9,
+        "phantomRatio": 0.1,
+        "tasksCompleted": 3,
+        "roundsSinceVerification": 2
+      }
+    },
+    {
+      "id": "dec_1774832153876",
+      "timestamp": "2026-03-30T00:55:53.876Z",
+      "type": "allow",
+      "trigger": "test",
+      "stateInference": null,
+      "reason": null,
+      "metricsSnapshot": {
+        "productivity": null,
+        "phantomRatio": null,
+        "roundsSinceVerification": null,
+        "roundsSinceDecision": null
+      },
+      "quality": "good",
+      "evaluateAfterRound": 6,
+      "outcomeMetrics": {
+        "productivity": 0.9,
+        "phantomRatio": 0.1,
+        "tasksCompleted": 3,
+        "roundsSinceVerification": 2
+      }
+    },
+    {
+      "id": "dec_1774832225726",
+      "timestamp": "2026-03-30T00:57:05.726Z",
+      "type": "nudge",
+      "trigger": "test",
+      "stateInference": null,
+      "reason": "test nudge",
+      "metricsSnapshot": {
+        "productivity": 0.85,
+        "phantomRatio": null,
+        "roundsSinceVerification": null,
+        "roundsSinceDecision": null
+      },
+      "quality": "good",
+      "evaluateAfterRound": 15,
+      "outcomeMetrics": {
+        "productivity": 0.9,
+        "phantomRatio": 0.1,
+        "tasksCompleted": 3,
+        "roundsSinceVerification": 2
+      }
+    },
+    {
+      "id": "dec_1774832225728",
+      "timestamp": "2026-03-30T00:57:05.728Z",
+      "type": "nudge",
+      "trigger": "test",
+      "stateInference": null,
+      "reason": null,
+      "metricsSnapshot": {
+        "productivity": null,
+        "phantomRatio": null,
+        "roundsSinceVerification": null,
+        "roundsSinceDecision": null
+      },
+      "quality": "good",
+      "evaluateAfterRound": 25,
+      "outcomeMetrics": {
+        "productivity": 0.9,
+        "phantomRatio": 0.1,
+        "tasksCompleted": 3,
+        "roundsSinceVerification": 2
+      }
+    },
+    {
+      "id": "dec_1774832225732",
+      "timestamp": "2026-03-30T00:57:05.732Z",
+      "type": "allow",
+      "trigger": "test",
+      "stateInference": null,
+      "reason": null,
+      "metricsSnapshot": {
+        "productivity": null,
+        "phantomRatio": null,
+        "roundsSinceVerification": null,
+        "roundsSinceDecision": null
+      },
+      "quality": "good",
+      "evaluateAfterRound": 6,
+      "outcomeMetrics": {
+        "productivity": 0.9,
+        "phantomRatio": 0.1,
+        "tasksCompleted": 3,
+        "roundsSinceVerification": 2
+      }
+    },
+    {
+      "id": "dec_1774832470749",
+      "timestamp": "2026-03-30T01:01:10.749Z",
+      "type": "nudge",
+      "trigger": "test",
+      "stateInference": null,
+      "reason": "test nudge",
+      "metricsSnapshot": {
+        "productivity": 0.85,
+        "phantomRatio": null,
+        "roundsSinceVerification": null,
+        "roundsSinceDecision": null
+      },
+      "quality": "good",
+      "evaluateAfterRound": 15,
+      "outcomeMetrics": {
+        "productivity": 0.9,
+        "phantomRatio": 0.1,
+        "tasksCompleted": 3,
+        "roundsSinceVerification": 2
+      }
+    },
+    {
+      "id": "dec_1774832470752",
+      "timestamp": "2026-03-30T01:01:10.752Z",
+      "type": "nudge",
+      "trigger": "test",
+      "stateInference": null,
+      "reason": null,
+      "metricsSnapshot": {
+        "productivity": null,
+        "phantomRatio": null,
+        "roundsSinceVerification": null,
+        "roundsSinceDecision": null
+      },
+      "quality": "good",
+      "evaluateAfterRound": 25,
+      "outcomeMetrics": {
+        "productivity": 0.9,
+        "phantomRatio": 0.1,
+        "tasksCompleted": 3,
+        "roundsSinceVerification": 2
+      }
+    },
+    {
+      "id": "dec_1774832470755",
+      "timestamp": "2026-03-30T01:01:10.755Z",
+      "type": "allow",
+      "trigger": "test",
+      "stateInference": null,
+      "reason": null,
+      "metricsSnapshot": {
+        "productivity": null,
+        "phantomRatio": null,
+        "roundsSinceVerification": null,
+        "roundsSinceDecision": null
+      },
+      "quality": "good",
+      "evaluateAfterRound": 6,
+      "outcomeMetrics": {
+        "productivity": 0.9,
+        "phantomRatio": 0.1,
+        "tasksCompleted": 3,
+        "roundsSinceVerification": 2
+      }
+    },
+    {
+      "id": "dec_1774832531737",
+      "timestamp": "2026-03-30T01:02:11.737Z",
+      "type": "nudge",
+      "trigger": "test",
+      "stateInference": null,
+      "reason": "test nudge",
+      "metricsSnapshot": {
+        "productivity": 0.85,
+        "phantomRatio": null,
+        "roundsSinceVerification": null,
+        "roundsSinceDecision": null
+      },
+      "quality": "good",
+      "evaluateAfterRound": 15,
+      "outcomeMetrics": {
+        "productivity": 0.9,
+        "phantomRatio": 0.1,
+        "tasksCompleted": 3,
+        "roundsSinceVerification": 2
+      }
+    },
+    {
+      "id": "dec_1774832531740",
+      "timestamp": "2026-03-30T01:02:11.740Z",
+      "type": "nudge",
+      "trigger": "test",
+      "stateInference": null,
+      "reason": null,
+      "metricsSnapshot": {
+        "productivity": null,
+        "phantomRatio": null,
+        "roundsSinceVerification": null,
+        "roundsSinceDecision": null
+      },
+      "quality": "good",
+      "evaluateAfterRound": 25,
+      "outcomeMetrics": {
+        "productivity": 0.9,
+        "phantomRatio": 0.1,
+        "tasksCompleted": 3,
+        "roundsSinceVerification": 2
+      }
+    },
+    {
+      "id": "dec_1774832531744",
+      "timestamp": "2026-03-30T01:02:11.744Z",
+      "type": "allow",
+      "trigger": "test",
+      "stateInference": null,
+      "reason": null,
+      "metricsSnapshot": {
+        "productivity": null,
+        "phantomRatio": null,
+        "roundsSinceVerification": null,
+        "roundsSinceDecision": null
+      },
+      "quality": "good",
+      "evaluateAfterRound": 6,
+      "outcomeMetrics": {
+        "productivity": 0.9,
+        "phantomRatio": 0.1,
+        "tasksCompleted": 3,
+        "roundsSinceVerification": 2
+      }
     }
   ],
   "stats": {
-    "totalDecisions": 21,
+    "totalDecisions": 33,
     "nudgeEffectiveness": 1,
     "falseBlocks": 0,
     "guardianNoise": 0,
