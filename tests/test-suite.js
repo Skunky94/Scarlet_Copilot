@@ -1641,6 +1641,144 @@ suite('Cognition Telemetry (gpt_001)', () => {
     });
 });
 
+// ─── Chaos Testing Framework (gpt_002) ──────────────────────────────────────
+
+suite('Chaos Testing Framework (gpt_002)', () => {
+    const createChaos = require('../lib/chaos.js');
+
+    test('module exports factory function', () => {
+        assert.ok(typeof createChaos === 'function');
+    });
+
+    const mockDeps = {
+        fs: require('fs'),
+        path: require('path'),
+        getWorkspaceRoot: () => null
+    };
+    const chaos = createChaos(mockDeps);
+
+    test('FAULTS has expected types', () => {
+        assert.strictEqual(chaos.FAULTS.CORRUPT_JSON, 'corrupt_json');
+        assert.strictEqual(chaos.FAULTS.MISSING_FILE, 'missing_file');
+        assert.strictEqual(chaos.FAULTS.PARTIAL_STATE, 'partial_state');
+        assert.strictEqual(chaos.FAULTS.STALE_TMP, 'stale_tmp');
+        assert.strictEqual(chaos.FAULTS.EMPTY_FILE, 'empty_file');
+        assert.strictEqual(chaos.FAULTS.WRONG_TYPE, 'wrong_type');
+    });
+
+    test('SCENARIOS has at least 10 scenarios', () => {
+        assert.ok(chaos.SCENARIOS.length >= 10);
+    });
+
+    test('all scenarios have required fields', () => {
+        for (const s of chaos.SCENARIOS) {
+            assert.ok(s.id, 'scenario missing id');
+            assert.ok(s.fault, 'scenario missing fault');
+            assert.ok(s.target, 'scenario missing target');
+            assert.ok(s.severity, 'scenario missing severity');
+            assert.ok(['high', 'medium', 'low'].includes(s.severity), 'invalid severity: ' + s.severity);
+        }
+    });
+
+    test('generateCorruptJson returns a string', () => {
+        const corrupt = chaos.generateCorruptJson();
+        assert.strictEqual(typeof corrupt, 'string');
+    });
+
+    test('generatePartialState returns valid JSON for known targets', () => {
+        const ledger = chaos.generatePartialState('task_ledger.json');
+        assert.ok(JSON.parse(ledger)); // should be valid JSON
+        const state = chaos.generatePartialState('agent_state.json');
+        assert.ok(JSON.parse(state));
+    });
+
+    test('generateWrongType returns JSON array', () => {
+        const wrong = chaos.generateWrongType();
+        const parsed = JSON.parse(wrong);
+        assert.ok(Array.isArray(parsed));
+    });
+
+    test('generateFaultData handles all fault types', () => {
+        for (const fault of Object.values(chaos.FAULTS)) {
+            const data = chaos.generateFaultData(fault, 'test.json');
+            if (fault === 'missing_file') {
+                assert.strictEqual(data, null);
+            } else {
+                assert.strictEqual(typeof data, 'string');
+            }
+        }
+    });
+
+    test('getCorruptVariants returns deterministic set', () => {
+        const variants = chaos.getCorruptVariants();
+        assert.ok(Array.isArray(variants));
+        assert.ok(variants.length >= 5);
+        for (const v of variants) {
+            assert.ok(v.name);
+            assert.ok('data' in v);
+        }
+    });
+
+    test('verifyReadJsonSafe handles corrupt JSON gracefully', () => {
+        // Simulate readJsonSafe behavior
+        const mockReadJsonSafe = (filePath, fallback) => {
+            try {
+                return JSON.parse(require('fs').readFileSync(filePath, 'utf8'));
+            } catch { return fallback; }
+        };
+        const result = chaos.verifyReadJsonSafe(mockReadJsonSafe, '{{invalid}}', { default: true });
+        assert.ok(result.passed);
+        assert.strictEqual(result.method, 'fallback_used');
+    });
+
+    test('verifyReadJsonSafe handles valid JSON', () => {
+        const mockReadJsonSafe = (filePath, fallback) => {
+            try {
+                return JSON.parse(require('fs').readFileSync(filePath, 'utf8'));
+            } catch { return fallback; }
+        };
+        const result = chaos.verifyReadJsonSafe(mockReadJsonSafe, '{"valid": true}', null);
+        assert.ok(result.passed);
+        assert.strictEqual(result.method, 'parsed_ok');
+    });
+
+    test('runAllScenarios without workspace returns results', () => {
+        const mockReadJsonSafe = (_fp, fallback) => fallback;
+        const results = chaos.runAllScenarios(mockReadJsonSafe);
+        assert.strictEqual(results.length, chaos.SCENARIOS.length);
+        for (const r of results) {
+            assert.ok('scenarioId' in r);
+            assert.ok('passed' in r);
+            assert.ok(r.passed, 'scenario ' + r.scenarioId + ' should pass with mock readJsonSafe');
+        }
+    });
+
+    test('getReport generates summary', () => {
+        const mockReadJsonSafe = (_fp, fallback) => fallback;
+        const results = chaos.runAllScenarios(mockReadJsonSafe);
+        const report = chaos.getReport(results);
+        assert.ok(report.total >= 10);
+        assert.strictEqual(report.failed, 0);
+        assert.strictEqual(report.resilient, true);
+        assert.ok(report.summary.includes('passed'));
+    });
+
+    test('real readJsonSafe handles all corrupt variants', () => {
+        // Use the actual readJsonSafe from extension.js exports
+        const ext = require('../extension.js');
+        const readJsonSafe = ext.__test ? ext.__test.readJsonSafe : null;
+        if (!readJsonSafe) {
+            assert.ok(true, 'readJsonSafe not available in test exports, skipping');
+            return;
+        }
+        const variants = chaos.getCorruptVariants();
+        for (const v of variants) {
+            const result = chaos.verifyReadJsonSafe(readJsonSafe, v.data, { fallback: true });
+            assert.ok(result.passed, 'readJsonSafe crashed on variant: ' + v.name);
+        }
+    });
+});
+
 // ─── Summary ─────────────────────────────────────────────────────────────────
 
 console.log('\n' + '─'.repeat(50));

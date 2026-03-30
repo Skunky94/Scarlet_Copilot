@@ -965,11 +965,12 @@
           "title": "Chaos Testing Framework",
           "description": "Simulate: tool failure, memory corruption, partial state, API timeout cascades. Test how Loop Guardian responds. GPT recommended as step 3.",
           "priority": "P2",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             "gpt_001"
           ],
-          "created_at": "2026-03-30T00:06:34.788Z"
+          "created_at": "2026-03-30T00:06:34.788Z",
+          "completed_at": "2026-03-30T00:23:53.987Z"
         },
         {
           "id": "gpt_003",

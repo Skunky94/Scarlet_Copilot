@@ -13,7 +13,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = 'v2.14.0'; // single source of truth for runtime version
+const VERSION = 'v2.15.0'; // single source of truth for runtime version
 
 // â”€â”€â”€ Configuration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -655,6 +655,15 @@ function getCognition() {
         fs, path: require('path'), getWorkspaceRoot
     });
     return _cognition;
+}
+
+// ─── Chaos Testing (lazy-loaded from lib/chaos.js, gpt_002) ──────────────────
+let _chaos = null;
+function getChaos() {
+    if (!_chaos) _chaos = require('./lib/chaos')({
+        fs, path: require('path'), getWorkspaceRoot
+    });
+    return _chaos;
 }
 
 function shouldBypassToolLimit(_request) {
@@ -1528,6 +1537,8 @@ if (process.env.SCARLET_TEST) {
         // dqf_001: Decision Quality Feedback test helpers
         getDecisionAudit,
         // gpt_001: Cognition Telemetry test helpers
-        getCognition
+        getCognition,
+        // gpt_002: Chaos Testing test helpers
+        getChaos
     };
 }
