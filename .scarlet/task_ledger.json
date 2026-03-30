@@ -1,12 +1,6 @@
 {
   "backlog_internal": [
     {
-      "id": "rt_003",
-      "title": "Exploration Quota (10% experimental)",
-      "priority": "P1",
-      "source": "gpt_redteam"
-    },
-    {
       "id": "rt_004",
       "title": "Memory Stratification (log compaction)",
       "priority": "P2",
@@ -19,17 +13,17 @@
       "source": "gpt_redteam"
     }
   ],
-  "notes": "v2.20.0 deployed, 215 tests. Guardian Self-Score active.",
+  "notes": "v2.21.0 deployed, 221 tests. Reflection theater detection active.",
   "last_verification": "2026-03-30T07:00:00.000Z",
   "current_task": {
-    "id": "rt_002",
+    "id": "rt_003",
     "status": "done",
     "step": "deployed_pushed"
   },
   "backlog_external": [],
   "status": "idle",
   "verified": true,
-  "current_step": "rt_002 done. 3 items remaining.",
+  "current_step": "rt_003 done. 2 items remaining.",
   "steps_completed": 8,
-  "last_updated": "2026-03-30T01:30:55.178Z"
+  "last_updated": "2026-03-30T01:35:49.434Z"
 }

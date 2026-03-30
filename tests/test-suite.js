@@ -1760,6 +1760,77 @@ suite('Reflection Impact Rate (rt_003)', () => {
     });
 });
 
+// ─── Circuit Breaker (rt_004) ───────────────────────────────────────────────
+suite('Circuit Breaker (rt_004)', () => {
+
+    test('CIRCUIT_BREAKER state is exported', () => {
+        const cb = ext.__test.CIRCUIT_BREAKER;
+        assert.ok(typeof cb === 'object');
+        assert.ok(typeof cb.RETRY_WINDOW === 'number');
+        assert.ok(typeof cb.MAX_RETRIES === 'number');
+        assert.ok(typeof cb.COOLDOWN_ROUNDS === 'number');
+        assert.strictEqual(cb.RETRY_WINDOW, 5);
+        assert.strictEqual(cb.MAX_RETRIES, 3);
+        assert.strictEqual(cb.COOLDOWN_ROUNDS, 3);
+    });
+
+    test('updateCircuitBreaker is a function', () => {
+        assert.strictEqual(typeof ext.__test.updateCircuitBreaker, 'function');
+    });
+
+    test('updateCircuitBreaker returns empty array for new tools', () => {
+        const cb = ext.__test.CIRCUIT_BREAKER;
+        cb.toolWindow = {};
+        cb.trippedTools = {};
+        cb.tripCount = 0;
+        const tripped = ext.__test.updateCircuitBreaker(['read_file'], 1);
+        assert.ok(Array.isArray(tripped));
+        assert.strictEqual(tripped.length, 0);
+    });
+
+    test('updateCircuitBreaker trips after MAX_RETRIES', () => {
+        const cb = ext.__test.CIRCUIT_BREAKER;
+        cb.toolWindow = {};
+        cb.trippedTools = {};
+        cb.tripCount = 0;
+        // Use same tool 3 times in window of 5
+        ext.__test.updateCircuitBreaker(['grep_search'], 10);
+        ext.__test.updateCircuitBreaker(['grep_search'], 11);
+        const tripped = ext.__test.updateCircuitBreaker(['grep_search'], 12);
+        assert.ok(tripped.includes('grep_search'), 'grep_search should trip after 3 uses');
+        assert.ok(cb.tripCount > 0);
+    });
+
+    test('tripped tool does not re-trip during cooldown', () => {
+        const cb = ext.__test.CIRCUIT_BREAKER;
+        // grep_search already tripped from previous test, using it again should not re-trip
+        const tripped = ext.__test.updateCircuitBreaker(['grep_search'], 13);
+        assert.strictEqual(tripped.length, 0, 'Already-tripped tool should not re-trip');
+    });
+
+    test('tripped tool resets after COOLDOWN_ROUNDS', () => {
+        const cb = ext.__test.CIRCUIT_BREAKER;
+        // Advance past cooldown (tripped at round 12, cooldown = 3)
+        cb.toolWindow = {};
+        const tripped = ext.__test.updateCircuitBreaker(['semantic_search'], 20);
+        assert.strictEqual(tripped.length, 0);
+        // grep_search should have been untripped by now
+        assert.ok(!cb.trippedTools['grep_search'], 'Tool should reset after cooldown');
+    });
+
+    test('phantom tools are ignored by circuit breaker', () => {
+        const cb = ext.__test.CIRCUIT_BREAKER;
+        cb.toolWindow = {};
+        cb.trippedTools = {};
+        cb.tripCount = 0;
+        // Phantom tools should not be tracked
+        ext.__test.updateCircuitBreaker(['scarlet_nudge_123'], 30);
+        ext.__test.updateCircuitBreaker(['scarlet_nudge_123'], 31);
+        const tripped = ext.__test.updateCircuitBreaker(['scarlet_nudge_123'], 32);
+        assert.strictEqual(tripped.length, 0, 'Phantom tools should not trip circuit breaker');
+    });
+});
+
 // ─── Chaos Testing Framework (gpt_002) ──────────────────────────────────────
 
 suite('Chaos Testing Framework (gpt_002)', () => {

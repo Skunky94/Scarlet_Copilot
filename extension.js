@@ -13,7 +13,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = 'v2.21.0'; // single source of truth for runtime version
+const VERSION = 'v2.22.0'; // single source of truth for runtime version
 
 // â”€â”€â”€ Configuration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -345,6 +345,51 @@ const PHANTOM = {
     WINDOW_INVALID_RATIO: POLICY.phantom.windowInvalidRatio,
     MIN_VALID_FOR_REPAIR: POLICY.phantom.minValidRoundsForRepair
 };
+
+// ─── Circuit Breaker (rt_004) ───────────────────────────────────────────────
+// "Compulsive loop detector potrebbe non attivarsi perché ogni retry sembra diverso"
+// Tracks per-tool usage in a sliding window. Fires nudge when a tool is retried excessively.
+const CIRCUIT_BREAKER = {
+    toolWindow: {},          // { toolName: [round1, round2, ...] } — recent round numbers
+    RETRY_WINDOW: 5,         // look at last N rounds
+    MAX_RETRIES: 3,          // max uses of same tool in window before tripping
+    trippedTools: {},        // { toolName: trippedAtRound } — currently tripped
+    COOLDOWN_ROUNDS: 3,      // how many rounds after trip before resetting
+    tripCount: 0             // total trips across session
+};
+
+// Update circuit breaker with current round's tool calls
+function updateCircuitBreaker(callNames, currentRound) {
+    const realTools = callNames.filter(n => !isPhantomToolCall(n));
+
+    // Expire cooldowns
+    for (const [tool, trippedAt] of Object.entries(CIRCUIT_BREAKER.trippedTools)) {
+        if (currentRound - trippedAt >= CIRCUIT_BREAKER.COOLDOWN_ROUNDS) {
+            delete CIRCUIT_BREAKER.trippedTools[tool];
+        }
+    }
+
+    // Track tool usage in sliding window
+    for (const name of realTools) {
+        if (!CIRCUIT_BREAKER.toolWindow[name]) CIRCUIT_BREAKER.toolWindow[name] = [];
+        CIRCUIT_BREAKER.toolWindow[name].push(currentRound);
+        // Trim to window
+        CIRCUIT_BREAKER.toolWindow[name] = CIRCUIT_BREAKER.toolWindow[name]
+            .filter(r => currentRound - r < CIRCUIT_BREAKER.RETRY_WINDOW);
+    }
+
+    // Check for trips
+    const newTrips = [];
+    for (const [tool, rounds] of Object.entries(CIRCUIT_BREAKER.toolWindow)) {
+        if (rounds.length >= CIRCUIT_BREAKER.MAX_RETRIES && !CIRCUIT_BREAKER.trippedTools[tool]) {
+            CIRCUIT_BREAKER.trippedTools[tool] = currentRound;
+            CIRCUIT_BREAKER.tripCount++;
+            newTrips.push(tool);
+        }
+    }
+
+    return newTrips; // tools that just tripped
+}
 
 // â”€â”€â”€ State Confidence Model (v2.11.0) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Replaces time-based grace period with confidence scoring.
@@ -921,6 +966,24 @@ async function onLoopCheck(roundData, loopInstance) {
             });
         } catch (e) {
             console.log('[LOOP-GUARDIAN] Cognition telemetry error:', e.message);
+        }
+
+        // -- Circuit Breaker (rt_004) --
+        // Detect tool retry patterns and inject nudge when excessive
+        try {
+            const trippedTools = updateCircuitBreaker(callNames, METRICS.totalRounds);
+            if (trippedTools.length > 0) {
+                const toolList = trippedTools.join(", ");
+                console.log("[CIRCUIT-BREAKER] Tripped: " + toolList);
+                logEvent("circuit_breaker", "trip", { tools: trippedTools, round: METRICS.totalRounds });
+                const msg = "[CIRCUIT-BREAKER] Tool retry budget exceeded for: " + toolList +
+                    ". You have used " + (trippedTools.length === 1 ? "this tool" : "these tools") +
+                    " " + CIRCUIT_BREAKER.MAX_RETRIES + "+ times in " + CIRCUIT_BREAKER.RETRY_WINDOW +
+                    " rounds. Try a different approach.";
+                injectMessage(roundData, loopInstance, msg);
+            }
+        } catch (e) {
+            console.warn("[CIRCUIT-BREAKER] Error: " + e.message);
         }
 
         // â”€â”€ GPT consultation detection â”€â”€
@@ -1615,6 +1678,9 @@ if (process.env.SCARLET_TEST) {
         getLastAdaptiveRound: () => _lastAdaptiveRound,
         setLastAdaptiveRound: (v) => { _lastAdaptiveRound = v; },
         // rt_003: Reflection Impact Rate test helpers
-        requestReflection
+        requestReflection,
+        // rt_004: Circuit Breaker test helpers
+        CIRCUIT_BREAKER,
+        updateCircuitBreaker
     };
 }
