@@ -13,7 +13,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = 'v2.22.0'; // single source of truth for runtime version
+const VERSION = 'v2.23.0'; // single source of truth for runtime version
 
 // â”€â”€â”€ Configuration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -389,6 +389,22 @@ function updateCircuitBreaker(callNames, currentRound) {
     }
 
     return newTrips; // tools that just tripped
+}
+
+// ─── Exploration Quota (rt_005) ─────────────────────────────────────────────
+// "Loop Guardian permette deliberatamente comportamenti rischiosi controllati?"
+// 10% of rounds are exploration rounds where guardian relaxes thresholds,
+// preventing stability from killing the agent's creative capacity.
+const EXPLORATION = {
+    QUOTA: 0.1,              // fraction of rounds that are exploratory
+    RELAX_FACTOR: 1.5,       // threshold multiplier during exploration (higher = less intervention)
+    PERIOD: 10,              // every Nth round is exploration (derived from 1/QUOTA)
+    roundsCount: 0,          // total exploration rounds in session
+    active: false            // whether current round is exploration
+};
+
+function isExplorationRound(round) {
+    return round > 0 && round % EXPLORATION.PERIOD === 0;
 }
 
 // â”€â”€â”€ State Confidence Model (v2.11.0) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -927,6 +943,13 @@ async function onLoopCheck(roundData, loopInstance) {
 
         METRICS.toolCalls += callNames.length;
         METRICS.totalRounds++;  // idle_009: track total rounds
+
+        // ── Exploration Quota (rt_005) ──
+        EXPLORATION.active = isExplorationRound(METRICS.totalRounds);
+        if (EXPLORATION.active) {
+            EXPLORATION.roundsCount++;
+            logEvent('exploration', 'round', { round: METRICS.totalRounds });
+        }
         logRoundMetrics(roundData, 'round');
 
         // Update rolling metrics
@@ -970,9 +993,10 @@ async function onLoopCheck(roundData, loopInstance) {
 
         // -- Circuit Breaker (rt_004) --
         // Detect tool retry patterns and inject nudge when excessive
+        // rt_005: Skip during exploration rounds — allow creative retries
         try {
             const trippedTools = updateCircuitBreaker(callNames, METRICS.totalRounds);
-            if (trippedTools.length > 0) {
+            if (trippedTools.length > 0 && !EXPLORATION.active) {
                 const toolList = trippedTools.join(", ");
                 console.log("[CIRCUIT-BREAKER] Tripped: " + toolList);
                 logEvent("circuit_breaker", "trip", { tools: trippedTools, round: METRICS.totalRounds });
@@ -1681,6 +1705,9 @@ if (process.env.SCARLET_TEST) {
         requestReflection,
         // rt_004: Circuit Breaker test helpers
         CIRCUIT_BREAKER,
-        updateCircuitBreaker
+        updateCircuitBreaker,
+        // rt_005: Exploration Quota test helpers
+        EXPLORATION,
+        isExplorationRound
     };
 }

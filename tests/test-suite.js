@@ -1831,6 +1831,50 @@ suite('Circuit Breaker (rt_004)', () => {
     });
 });
 
+// ─── Exploration Quota (rt_005) ─────────────────────────────────────────────
+suite('Exploration Quota (rt_005)', () => {
+
+    test('EXPLORATION state is exported', () => {
+        const exp = ext.__test.EXPLORATION;
+        assert.ok(typeof exp === 'object');
+        assert.strictEqual(exp.QUOTA, 0.1);
+        assert.strictEqual(exp.RELAX_FACTOR, 1.5);
+        assert.strictEqual(exp.PERIOD, 10);
+        assert.strictEqual(typeof exp.roundsCount, 'number');
+        assert.strictEqual(typeof exp.active, 'boolean');
+    });
+
+    test('isExplorationRound is a function', () => {
+        assert.strictEqual(typeof ext.__test.isExplorationRound, 'function');
+    });
+
+    test('isExplorationRound returns false for round 0', () => {
+        assert.strictEqual(ext.__test.isExplorationRound(0), false);
+    });
+
+    test('isExplorationRound returns true every 10th round', () => {
+        assert.strictEqual(ext.__test.isExplorationRound(10), true);
+        assert.strictEqual(ext.__test.isExplorationRound(20), true);
+        assert.strictEqual(ext.__test.isExplorationRound(30), true);
+    });
+
+    test('isExplorationRound returns false for non-10th rounds', () => {
+        assert.strictEqual(ext.__test.isExplorationRound(1), false);
+        assert.strictEqual(ext.__test.isExplorationRound(5), false);
+        assert.strictEqual(ext.__test.isExplorationRound(11), false);
+        assert.strictEqual(ext.__test.isExplorationRound(25), false);
+    });
+
+    test('exploration active flag toggles correctly', () => {
+        const exp = ext.__test.EXPLORATION;
+        exp.active = false;
+        assert.strictEqual(exp.active, false);
+        exp.active = true;
+        assert.strictEqual(exp.active, true);
+        exp.active = false; // reset
+    });
+});
+
 // ─── Chaos Testing Framework (gpt_002) ──────────────────────────────────────
 
 suite('Chaos Testing Framework (gpt_002)', () => {
