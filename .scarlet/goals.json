@@ -953,11 +953,12 @@
           "title": "Cognition Telemetry",
           "description": "Add agent cognition metrics: confidence score, decision latency, tool success rate, goal churn, reflection effectiveness. GPT recommended as step 2 after DQF.",
           "priority": "P2",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             "dqf_001"
           ],
-          "created_at": "2026-03-30T00:06:34.787Z"
+          "created_at": "2026-03-30T00:06:34.787Z",
+          "completed_at": "2026-03-30T00:15:35.581Z"
         },
         {
           "id": "gpt_002",
@@ -986,9 +987,10 @@
           "title": "Goal Entropy Detection",
           "description": "Measure goal_entropy = goals_created / capability_gain. Detect artificial work creation. GPT-recommended anti-inflation metric.",
           "priority": "P2",
-          "status": "pending",
+          "status": "done",
           "dependencies": [],
-          "created_at": "2026-03-30T00:06:34.788Z"
+          "created_at": "2026-03-30T00:06:34.788Z",
+          "completed_at": "2026-03-30T00:19:29.094Z"
         },
         {
           "id": "gpt_005",

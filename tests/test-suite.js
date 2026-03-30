@@ -1217,9 +1217,14 @@ suite('Browser Interaction Abstraction (exp_008)', () => {
         assert.ok(modes[0].name);
     });
 
-    test('canConsult returns true initially', () => {
-        const br = T.getBrowser();
-        assert.ok(br.canConsult());
+    test('canConsult returns true on fresh instance', () => {
+        // Create a fresh browser instance to avoid disk state pollution
+        const createBrowser = require('../lib/browser.js');
+        const freshBr = createBrowser({
+            getWorkspaceRoot: () => null,
+            POLICY: { browser: { chatUrl: 'https://chatgpt.com/c/test', maxRetries: 3, baseDelayMs: 2000, maxDelayMs: 30000, timeoutMs: 60000, backoffAfterFailures: 3, cooldownMs: 300000 } }
+        });
+        assert.ok(freshBr.canConsult());
     });
 
     test('recordConsultation updates state', () => {
@@ -1565,9 +1570,55 @@ suite('Cognition Telemetry (gpt_001)', () => {
         assert.ok('toolSuccessRateByTool' in tel);
         assert.ok('decisionLatencyMs' in tel);
         assert.ok('goalChurn' in tel);
+        assert.ok('goalEntropy' in tel);
+        assert.ok('isGoalInflation' in tel);
+        assert.ok('capabilityGain' in tel);
         assert.ok('reflectionEffectiveness' in tel);
         assert.ok('roundsTracked' in tel);
         assert.ok('samplesCount' in tel);
+        assert.ok('capabilityEvents' in tel.samplesCount);
+    });
+
+    test('GOAL_ENTROPY_THRESHOLD is a number', () => {
+        assert.strictEqual(typeof cog.GOAL_ENTROPY_THRESHOLD, 'number');
+        assert.strictEqual(cog.GOAL_ENTROPY_THRESHOLD, 3.0);
+    });
+
+    test('recordCapabilityEvent tracks modules/tests/deploys', () => {
+        cog.recordCapabilityEvent('module', 'cognition.js');
+        cog.recordCapabilityEvent('test', '19 tests added');
+        cog.recordCapabilityEvent('deploy', 'v2.14.0');
+        const gain = cog.getCapabilityGain();
+        assert.strictEqual(gain.modules, 1);
+        assert.strictEqual(gain.tests, 1);
+        assert.strictEqual(gain.deploys, 1);
+        assert.strictEqual(gain.total, 3);
+    });
+
+    test('recordCapabilityEvent rejects invalid types', () => {
+        cog.recordCapabilityEvent('invalid_cap', 'nope');
+        const gain = cog.getCapabilityGain();
+        assert.strictEqual(gain.total, 3); // unchanged from previous test
+    });
+
+    test('computeGoalEntropy returns ratio', () => {
+        // We have 2 goals created (from earlier tests) and 3 capability events
+        const entropy = cog.computeGoalEntropy();
+        assert.ok(typeof entropy === 'number');
+        assert.ok(entropy < cog.GOAL_ENTROPY_THRESHOLD, 'entropy ' + entropy + ' should be below threshold');
+    });
+
+    test('isGoalInflation returns false when healthy', () => {
+        assert.strictEqual(cog.isGoalInflation(), false);
+    });
+
+    test('computeGoalEntropy returns Infinity with zero capability', () => {
+        // Create a fresh instance with goals but no capability
+        const fresh = createCognition({ fs: require('fs'), path: require('path'), getWorkspaceRoot: () => null });
+        fresh.recordGoalEvent('created', 'inflated_1');
+        fresh.recordGoalEvent('created', 'inflated_2');
+        assert.strictEqual(fresh.computeGoalEntropy(), Infinity);
+        assert.strictEqual(fresh.isGoalInflation(), true);
     });
 
     test('getTelemetryPath returns null without workspace', () => {
