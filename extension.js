@@ -1423,6 +1423,12 @@ async function onLoopCheck(roundData, loopInstance) {
                     // No tasks, no backlog, and haven't consulted GPT recently â†’ nudge consultation
                     injectContextualIdle(roundData, loopInstance, 'gpt_consult', currentState);
                 } else {
+                    // arch_002: during genuine equilibrium, skip phantom injection
+                    // to avoid compulsive tool echo behavior in the LLM
+                    if (currentState.state === 'equilibrium' || currentState.state === 'cooling') {
+                        logEvent('idle', 'equilibrium_silent', { idleCycles: METRICS.idleCycles });
+                        continue; // stay in polling without waking agent
+                    }
                     injectIdleLife(roundData, loopInstance);
                 }
                 METRICS.state = 'Living';
