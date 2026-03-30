@@ -13,7 +13,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = 'v2.12.0'; // single source of truth for runtime version
+const VERSION = 'v2.14.0'; // single source of truth for runtime version
 
 // â”€â”€â”€ Configuration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -648,6 +648,15 @@ function getDecisionAudit() {
     return _decisionAudit;
 }
 
+// ─── Cognition Telemetry (lazy-loaded from lib/cognition.js, gpt_001) ─────────
+let _cognition = null;
+function getCognition() {
+    if (!_cognition) _cognition = require('./lib/cognition')({
+        fs, path: require('path'), getWorkspaceRoot
+    });
+    return _cognition;
+}
+
 function shouldBypassToolLimit(_request) {
     if (!cfg('enabled')) return false;
     return cfg('bypassToolLimit') === true;
@@ -811,6 +820,40 @@ async function onLoopCheck(roundData, loopInstance) {
         pushRollingRound(callNames.length, phantomCount);
         ROLLING.roundsSinceVerification++;
         ROLLING.roundsSinceLedgerUpdate++;
+
+        // ── Cognition Telemetry (gpt_001) ──
+        // Record tool outcomes and compute per-round confidence signals
+        try {
+            const cog = getCognition();
+            const SEARCH_TOOLS = ['grep_search', 'file_search', 'semantic_search'];
+            const READ_TOOLS = ['read_file'];
+            const WRITE_TOOLS_COG = ['replace_string_in_file', 'multi_replace_string_in_file', 'create_file', 'run_in_terminal'];
+            const searchCount = callNames.filter(n => SEARCH_TOOLS.includes(n)).length;
+            const readCount = callNames.filter(n => READ_TOOLS.includes(n)).length;
+            const writeCount = callNames.filter(n => WRITE_TOOLS_COG.includes(n)).length;
+            const uniqueTools = new Set(callNames.filter(n => !isPhantomToolCall(n))).size;
+            // Record each tool as success (we don't have failure info at this level)
+            for (const name of callNames) {
+                if (!isPhantomToolCall(name)) {
+                    cog.recordToolOutcome(name, 'success', METRICS.totalRounds);
+                }
+            }
+            cog.recordRoundSignals(METRICS.totalRounds, {
+                searchCount,
+                repeatedReads: 0, // would need file-level tracking, future enhancement
+                directActions: writeCount,
+                retries: 0, // would need retry detection, future enhancement
+                uniqueTools,
+                totalCalls: realCount
+            });
+            // Take periodic snapshot
+            cog.takeSnapshot(METRICS.totalRounds, {
+                productivity: ROLLING.productivityScore,
+                phantomRatio: ROLLING.phantomRatioAvg
+            });
+        } catch (e) {
+            console.log('[LOOP-GUARDIAN] Cognition telemetry error:', e.message);
+        }
 
         // â”€â”€ GPT consultation detection â”€â”€
         ROLLING.roundsSinceGptConsult++;
@@ -1483,6 +1526,8 @@ if (process.env.SCARLET_TEST) {
         // idle_008: Branch prototyping test helpers
         getBranch,
         // dqf_001: Decision Quality Feedback test helpers
-        getDecisionAudit
+        getDecisionAudit,
+        // gpt_001: Cognition Telemetry test helpers
+        getCognition
     };
 }

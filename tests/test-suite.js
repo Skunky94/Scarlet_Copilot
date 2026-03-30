@@ -1438,6 +1438,158 @@ suite('Decision Quality Feedback (dqf_001)', () => {
     });
 });
 
+// ─── Cognition Telemetry (gpt_001) ───────────────────────────────────────────
+
+suite('Cognition Telemetry (gpt_001)', () => {
+    const createCognition = require('../lib/cognition.js');
+
+    test('module exports factory function', () => {
+        assert.ok(typeof createCognition === 'function');
+    });
+
+    const mockDeps = {
+        fs: require('fs'),
+        path: require('path'),
+        getWorkspaceRoot: () => null  // no disk I/O in tests
+    };
+    const cog = createCognition(mockDeps);
+
+    test('TOOL_OUTCOMES has expected values', () => {
+        assert.strictEqual(cog.TOOL_OUTCOMES.SUCCESS, 'success');
+        assert.strictEqual(cog.TOOL_OUTCOMES.FAILURE, 'failure');
+        assert.strictEqual(cog.TOOL_OUTCOMES.TIMEOUT, 'timeout');
+    });
+
+    test('CONFIDENCE_WEIGHTS has expected keys', () => {
+        assert.ok('searchBeforeAction' in cog.CONFIDENCE_WEIGHTS);
+        assert.ok('repeatedReads' in cog.CONFIDENCE_WEIGHTS);
+        assert.ok('directAction' in cog.CONFIDENCE_WEIGHTS);
+        assert.ok('retryAfterFailure' in cog.CONFIDENCE_WEIGHTS);
+    });
+
+    test('constants are correct', () => {
+        assert.strictEqual(cog.TELEMETRY_FILE, '.scarlet/cognition_telemetry.json');
+        assert.strictEqual(cog.MAX_SAMPLES, 500);
+        assert.strictEqual(cog.MAX_SNAPSHOTS, 100);
+        assert.strictEqual(cog.SNAPSHOT_INTERVAL, 10);
+    });
+
+    test('recordToolOutcome and getToolSuccessRate', () => {
+        cog.recordToolOutcome('read_file', 'success', 1);
+        cog.recordToolOutcome('read_file', 'success', 2);
+        cog.recordToolOutcome('grep_search', 'failure', 3);
+        const rate = cog.getToolSuccessRate(10);
+        assert.ok(rate > 0.6 && rate < 0.7, 'rate should be ~0.667, got ' + rate);
+    });
+
+    test('getToolSuccessRateByTool returns per-tool breakdown', () => {
+        const rates = cog.getToolSuccessRateByTool(10);
+        assert.ok(typeof rates === 'object');
+        assert.strictEqual(rates['read_file'], 1.0);
+        assert.strictEqual(rates['grep_search'], 0);
+    });
+
+    test('recordRoundSignals computes confidence', () => {
+        const confidence = cog.recordRoundSignals(1, {
+            searchCount: 0,
+            repeatedReads: 0,
+            directActions: 2,
+            retries: 0,
+            uniqueTools: 3,
+            totalCalls: 5
+        });
+        assert.ok(confidence > 0.5, 'high-confidence round should be > 0.5, got ' + confidence);
+    });
+
+    test('computeConfidence clamps to [0,1]', () => {
+        const low = cog.computeConfidence({ searchCount: 10, repeatedReads: 5, directActions: 0, retries: 5, uniqueTools: 0, totalCalls: 1 });
+        assert.strictEqual(low, 0);
+        const high = cog.computeConfidence({ searchCount: 0, repeatedReads: 0, directActions: 5, retries: 0, uniqueTools: 5, totalCalls: 10 });
+        assert.strictEqual(high, 1);
+    });
+
+    test('getCurrentConfidence returns weighted average', () => {
+        const conf = cog.getCurrentConfidence();
+        assert.ok(typeof conf === 'number');
+        assert.ok(conf >= 0 && conf <= 1);
+    });
+
+    test('recordDecision and getDecisionLatency', () => {
+        cog.recordDecision(1);
+        cog.recordDecision(2);
+        const latency = cog.getDecisionLatency();
+        assert.ok(typeof latency === 'number');
+        assert.ok(latency >= 0);
+    });
+
+    test('recordGoalEvent and getGoalChurn', () => {
+        cog.recordGoalEvent('created', 'test_1');
+        cog.recordGoalEvent('created', 'test_2');
+        cog.recordGoalEvent('completed', 'test_1');
+        const churn = cog.getGoalChurn();
+        assert.strictEqual(churn.created, 2);
+        assert.strictEqual(churn.completed, 1);
+        assert.strictEqual(churn.churn, 2);  // 2 created / 1 completed
+    });
+
+    test('recordGoalEvent rejects invalid types', () => {
+        cog.recordGoalEvent('invalid_type', 'nope');
+        // should not crash, but also not record
+        const churn = cog.getGoalChurn();
+        assert.strictEqual(churn.created, 2);  // unchanged
+    });
+
+    test('recordReflection and getReflectionEffectiveness', () => {
+        cog.recordReflection(1, { productivity: 0.5, phantomRatio: 0.3 });
+        const eff = cog.getReflectionEffectiveness();
+        assert.strictEqual(eff.total, 0);  // not evaluated yet
+    });
+
+    test('takeSnapshot at round 0', () => {
+        const snap = cog.takeSnapshot(0, { productivity: 0.8 });
+        assert.ok(snap !== null);
+        assert.ok('confidence' in snap);
+        assert.ok('toolSuccessRate' in snap);
+        assert.ok('goalChurn' in snap);
+    });
+
+    test('takeSnapshot returns null at non-interval round', () => {
+        const snap = cog.takeSnapshot(3, {});
+        assert.strictEqual(snap, null);
+    });
+
+    test('getTelemetry returns full aggregate', () => {
+        const tel = cog.getTelemetry();
+        assert.ok('confidence' in tel);
+        assert.ok('toolSuccessRate' in tel);
+        assert.ok('toolSuccessRateByTool' in tel);
+        assert.ok('decisionLatencyMs' in tel);
+        assert.ok('goalChurn' in tel);
+        assert.ok('reflectionEffectiveness' in tel);
+        assert.ok('roundsTracked' in tel);
+        assert.ok('samplesCount' in tel);
+    });
+
+    test('getTelemetryPath returns null without workspace', () => {
+        const p = cog.getTelemetryPath();
+        assert.strictEqual(p, null);
+    });
+
+    test('evaluateReflections needs sufficient rounds', () => {
+        const evaluated = cog.evaluateReflections({ productivity: 0.9, phantomRatio: 0.1 });
+        // Reflection was at round 1, current round from roundSignals is low, may not have passed SNAPSHOT_INTERVAL
+        assert.ok(typeof evaluated === 'number');
+    });
+
+    test('saveState and loadState execute without workspace', () => {
+        // Should silently do nothing when no workspace root
+        cog.saveState();
+        cog.loadState();
+        // No crash = pass
+        assert.ok(true);
+    });
+});
+
 // ─── Summary ─────────────────────────────────────────────────────────────────
 
 console.log('\n' + '─'.repeat(50));

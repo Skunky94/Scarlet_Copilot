@@ -943,6 +943,66 @@
           "dependencies": []
         }
       ]
+    },
+    {
+      "name": "Layer 7: GPT Roadmap (post-DQF)",
+      "source": "gpt_consultation_2026-03-30",
+      "goals": [
+        {
+          "id": "gpt_001",
+          "title": "Cognition Telemetry",
+          "description": "Add agent cognition metrics: confidence score, decision latency, tool success rate, goal churn, reflection effectiveness. GPT recommended as step 2 after DQF.",
+          "priority": "P2",
+          "status": "pending",
+          "dependencies": [
+            "dqf_001"
+          ],
+          "created_at": "2026-03-30T00:06:34.787Z"
+        },
+        {
+          "id": "gpt_002",
+          "title": "Chaos Testing Framework",
+          "description": "Simulate: tool failure, memory corruption, partial state, API timeout cascades. Test how Loop Guardian responds. GPT recommended as step 3.",
+          "priority": "P2",
+          "status": "pending",
+          "dependencies": [
+            "gpt_001"
+          ],
+          "created_at": "2026-03-30T00:06:34.788Z"
+        },
+        {
+          "id": "gpt_003",
+          "title": "Long-Horizon Simulation",
+          "description": "72h continuous loop testing. Monitor: memory growth, goal degeneration, retry spam, reflection repetitiveness. GPT recommended as step 4.",
+          "priority": "P3",
+          "status": "pending",
+          "dependencies": [
+            "gpt_002"
+          ],
+          "created_at": "2026-03-30T00:06:34.788Z"
+        },
+        {
+          "id": "gpt_004",
+          "title": "Goal Entropy Detection",
+          "description": "Measure goal_entropy = goals_created / capability_gain. Detect artificial work creation. GPT-recommended anti-inflation metric.",
+          "priority": "P2",
+          "status": "pending",
+          "dependencies": [],
+          "created_at": "2026-03-30T00:06:34.788Z"
+        },
+        {
+          "id": "gpt_005",
+          "title": "Adaptive Governance",
+          "description": "Evolve Loop Guardian from static heuristics to adaptive governance. Rules learn from decision_audit outcomes. GPT challenge: can LG learn?",
+          "priority": "P3",
+          "status": "pending",
+          "dependencies": [
+            "gpt_001",
+            "gpt_004"
+          ],
+          "created_at": "2026-03-30T00:06:34.788Z"
+        }
+      ]
     }
   ]
 }
