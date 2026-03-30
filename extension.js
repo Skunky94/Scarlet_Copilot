@@ -13,7 +13,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = 'v2.16.0'; // single source of truth for runtime version
+const VERSION = 'v2.17.0'; // single source of truth for runtime version
 
 // â”€â”€â”€ Configuration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -673,6 +673,15 @@ function getHorizon() {
         fs, path: require('path'), getWorkspaceRoot
     });
     return _horizon;
+}
+
+// ─── Adaptive Governance (lazy-loaded from lib/adaptive.js, gpt_005) ─────────
+let _adaptive = null;
+function getAdaptive() {
+    if (!_adaptive) _adaptive = require('./lib/adaptive')({
+        fs, path: require('path'), getWorkspaceRoot
+    });
+    return _adaptive;
 }
 
 function shouldBypassToolLimit(_request) {
@@ -1550,6 +1559,8 @@ if (process.env.SCARLET_TEST) {
         // gpt_002: Chaos Testing test helpers
         getChaos,
         // gpt_003: Long-Horizon Monitor test helpers
-        getHorizon
+        getHorizon,
+        // gpt_005: Adaptive Governance test helpers
+        getAdaptive
     };
 }

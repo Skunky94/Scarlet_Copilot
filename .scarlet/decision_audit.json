@@ -395,10 +395,76 @@
         "tasksCompleted": 3,
         "roundsSinceVerification": 2
       }
+    },
+    {
+      "id": "dec_1774830634248",
+      "timestamp": "2026-03-30T00:30:34.248Z",
+      "type": "nudge",
+      "trigger": "test",
+      "stateInference": null,
+      "reason": "test nudge",
+      "metricsSnapshot": {
+        "productivity": 0.85,
+        "phantomRatio": null,
+        "roundsSinceVerification": null,
+        "roundsSinceDecision": null
+      },
+      "quality": "good",
+      "evaluateAfterRound": 15,
+      "outcomeMetrics": {
+        "productivity": 0.9,
+        "phantomRatio": 0.1,
+        "tasksCompleted": 3,
+        "roundsSinceVerification": 2
+      }
+    },
+    {
+      "id": "dec_1774830634251",
+      "timestamp": "2026-03-30T00:30:34.251Z",
+      "type": "nudge",
+      "trigger": "test",
+      "stateInference": null,
+      "reason": null,
+      "metricsSnapshot": {
+        "productivity": null,
+        "phantomRatio": null,
+        "roundsSinceVerification": null,
+        "roundsSinceDecision": null
+      },
+      "quality": "good",
+      "evaluateAfterRound": 25,
+      "outcomeMetrics": {
+        "productivity": 0.9,
+        "phantomRatio": 0.1,
+        "tasksCompleted": 3,
+        "roundsSinceVerification": 2
+      }
+    },
+    {
+      "id": "dec_1774830634254",
+      "timestamp": "2026-03-30T00:30:34.254Z",
+      "type": "allow",
+      "trigger": "test",
+      "stateInference": null,
+      "reason": null,
+      "metricsSnapshot": {
+        "productivity": null,
+        "phantomRatio": null,
+        "roundsSinceVerification": null,
+        "roundsSinceDecision": null
+      },
+      "quality": "good",
+      "evaluateAfterRound": 6,
+      "outcomeMetrics": {
+        "productivity": 0.9,
+        "phantomRatio": 0.1,
+        "tasksCompleted": 3,
+        "roundsSinceVerification": 2
+      }
     }
   ],
   "stats": {
-    "totalDecisions": 18,
+    "totalDecisions": 21,
     "nudgeEffectiveness": 1,
     "falseBlocks": 0,
     "guardianNoise": 0,

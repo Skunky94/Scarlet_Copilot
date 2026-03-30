@@ -1909,6 +1909,150 @@ suite('Long-Horizon Simulation Monitor (gpt_003)', () => {
     });
 });
 
+// ─── Adaptive Governance (gpt_005) ──────────────────────────────────────────
+
+suite('Adaptive Governance (gpt_005)', () => {
+    const createAdaptive = require('../lib/adaptive.js');
+
+    test('module exports factory function', () => {
+        assert.ok(typeof createAdaptive === 'function');
+    });
+
+    const adp = createAdaptive({
+        fs: require('fs'),
+        path: require('path'),
+        getWorkspaceRoot: () => null
+    });
+
+    test('DEFAULT_MULTIPLIERS has expected keys', () => {
+        assert.ok('nudgeThreshold' in adp.DEFAULT_MULTIPLIERS);
+        assert.ok('compulsiveLoopThreshold' in adp.DEFAULT_MULTIPLIERS);
+        assert.ok('driftWindowSize' in adp.DEFAULT_MULTIPLIERS);
+        assert.ok('decisionCollapseThreshold' in adp.DEFAULT_MULTIPLIERS);
+        assert.ok('phantomBurstThreshold' in adp.DEFAULT_MULTIPLIERS);
+    });
+
+    test('constants are correct', () => {
+        assert.strictEqual(adp.ADAPTATIONS_FILE, '.scarlet/adaptive_governance.json');
+        assert.strictEqual(adp.LEARNING_RATE, 0.1);
+        assert.strictEqual(adp.MIN_SAMPLES, 10);
+        assert.strictEqual(adp.MAX_MULTIPLIER, 2.0);
+        assert.strictEqual(adp.MIN_MULTIPLIER, 0.3);
+    });
+
+    test('getMultipliers returns all defaults initially', () => {
+        const m = adp.getMultipliers();
+        for (const key of Object.keys(adp.DEFAULT_MULTIPLIERS)) {
+            assert.strictEqual(m[key], 1.0, key + ' should be 1.0');
+        }
+    });
+
+    test('getMultiplier returns 1.0 for known keys', () => {
+        assert.strictEqual(adp.getMultiplier('nudgeThreshold'), 1.0);
+    });
+
+    test('getMultiplier returns 1.0 for unknown keys', () => {
+        assert.strictEqual(adp.getMultiplier('nonexistent'), 1.0);
+    });
+
+    test('applyMultiplier scales base value', () => {
+        assert.strictEqual(adp.applyMultiplier('nudgeThreshold', 10), 10);
+    });
+
+    test('adapt returns insufficient_samples with few records', () => {
+        const result = adp.adapt({ totalRecords: 5 });
+        assert.strictEqual(result.adapted, false);
+        assert.strictEqual(result.reason, 'insufficient_samples');
+    });
+
+    test('adapt adjusts nudgeThreshold when effectiveness is low', () => {
+        const result = adp.adapt({
+            nudgeEffectiveness: 0.1,
+            falseBlocks: 0,
+            guardianNoise: 0.1,
+            avgQuality: 0.5,
+            totalRecords: 20
+        });
+        assert.ok(result.adapted);
+        assert.ok(result.multipliers.nudgeThreshold > 1.0, 'nudge threshold should increase');
+    });
+
+    test('adapt adjusts compulsiveLoopThreshold when falseBlocks high', () => {
+        adp.reset(); // start fresh
+        const result = adp.adapt({
+            nudgeEffectiveness: 0.5,
+            falseBlocks: 5,
+            guardianNoise: 0.1,
+            avgQuality: 0.5,
+            totalRecords: 20
+        });
+        assert.ok(result.adapted);
+        assert.ok(result.multipliers.compulsiveLoopThreshold > 1.0);
+        assert.ok(result.multipliers.decisionCollapseThreshold > 1.0);
+    });
+
+    test('adapt backs off when guardian noise is high', () => {
+        adp.reset();
+        const result = adp.adapt({
+            nudgeEffectiveness: 0.5,
+            falseBlocks: 0,
+            guardianNoise: 0.6,
+            avgQuality: 0.0,
+            totalRecords: 20
+        });
+        assert.ok(result.adapted);
+        assert.ok(result.multipliers.nudgeThreshold > 1.0);
+        assert.ok(result.multipliers.phantomBurstThreshold > 1.0);
+    });
+
+    test('multipliers are clamped to [MIN, MAX]', () => {
+        adp.reset();
+        // Drive nudgeThreshold to max by repeated adaptations
+        for (let i = 0; i < 30; i++) {
+            adp.adapt({ nudgeEffectiveness: 0.0, falseBlocks: 5, guardianNoise: 0.8, avgQuality: -0.5, totalRecords: 50 });
+        }
+        const m = adp.getMultipliers();
+        assert.ok(m.nudgeThreshold <= adp.MAX_MULTIPLIER);
+        assert.ok(m.nudgeThreshold >= adp.MIN_MULTIPLIER);
+    });
+
+    test('reset restores defaults', () => {
+        adp.reset();
+        const m = adp.getMultipliers();
+        for (const key of Object.keys(adp.DEFAULT_MULTIPLIERS)) {
+            assert.strictEqual(m[key], 1.0);
+        }
+    });
+
+    test('getStatus reports adaptation state', () => {
+        adp.reset();
+        const status = adp.getStatus();
+        assert.ok('multipliers' in status);
+        assert.ok('deviations' in status);
+        assert.ok('isAdapted' in status);
+        assert.strictEqual(status.isAdapted, false);
+    });
+
+    test('getHistory returns recent adaptations', () => {
+        adp.reset();
+        adp.adapt({ nudgeEffectiveness: 0.1, totalRecords: 20, falseBlocks: 0, guardianNoise: 0, avgQuality: 0 });
+        const history = adp.getHistory(5);
+        assert.ok(Array.isArray(history));
+        assert.ok(history.length >= 1);
+        assert.ok('changes' in history[0]);
+    });
+
+    test('getAdaptationsPath returns null without workspace', () => {
+        assert.strictEqual(adp.getAdaptationsPath(), null);
+    });
+
+    test('saveState and loadState execute without workspace', () => {
+        adp.saveState();
+        adp.loadState();
+        assert.ok(true);
+    });
+});
+
 // ─── Summary ─────────────────────────────────────────────────────────────────
 
 console.log('\n' + '─'.repeat(50));
