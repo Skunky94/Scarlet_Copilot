@@ -56,6 +56,10 @@ if ($dst -ne $targetPath -and -not (Test-Path $targetPath)) {
 }
 
 # Verify version
-$header = Get-Content (Join-Path $dst "extension.js") -First 1
-Write-Host "`nDeploy completato. Versione attiva: $header"
+$versionLine = (Get-Content (Join-Path $dst "extension.js") | Select-String "const VERSION" | Select-Object -First 1).Line
+if ($versionLine) {
+    Write-Host "`nDeploy completato. Versione attiva: $versionLine"
+} else {
+    Write-Host "`nDeploy completato. Versione: $($pkg.version) (da package.json)"
+}
 Write-Host "NOTA: Ricaricare VS Code per attivare le modifiche (Ctrl+Shift+P -> Reload Window)"
